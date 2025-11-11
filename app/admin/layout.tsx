@@ -32,6 +32,15 @@ const navItems: NavItem[] = [
   { name: "Dashboard", href: "/admin" },
   { name: "Users", href: "/admin/users" },
   {
+    name: "Products",
+    children: [
+      { name: "Product List", href: "/admin/products" },
+      { name: "Add Product", href: "/admin/products/add" },
+      { name: "Categories", href: "/admin/products/categories" },
+      { name: "Inventory", href: "/admin/products/inventory" },
+    ]
+  },
+  {
     name: "Configuration",
     children: [
       { name: "General", href: "/admin/configuration/general" },
