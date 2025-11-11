@@ -86,7 +86,7 @@ const inventoryItems = [
 ];
 
 function getStockStatusBadge(status: string) {
-  const variants: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; className: string; icon: JSX.Element }> = {
+  const variants: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; className: string; icon: React.ReactElement }> = {
     healthy: {
       variant: "outline",
       className: "bg-green-50 text-green-700 border-green-200",
@@ -120,7 +120,7 @@ function getStockStatusBadge(status: string) {
 }
 
 function getMovementIndicator(movement: string) {
-  const indicators: Record<string, { icon: JSX.Element; className: string }> = {
+  const indicators: Record<string, { icon: React.ReactElement; className: string }> = {
     increasing: {
       icon: <TrendingUp className="h-4 w-4" />,
       className: "text-green-600",

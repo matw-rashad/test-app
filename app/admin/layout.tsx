@@ -18,7 +18,6 @@ import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 
@@ -87,7 +86,7 @@ function NavigationItem({
         </Button>
         {isExpanded && (
           <div className="ml-3 space-y-1 border-l-2 border-gray-200 pl-2">
-            {item.children.map((child) => (
+            {item.children!.map((child) => (
               <NavigationItem
                 key={child.href || child.name}
                 item={child}

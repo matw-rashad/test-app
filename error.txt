@@ -1,0 +1,243 @@
+Oops something is not okay, are you okay? 😢
+2025-Nov-11 15:03:30.693088
+#0 building with "default" instance using docker driver
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#1 [internal] load build definition from Dockerfile
+2025-Nov-11 15:03:30.693088
+#1 transferring dockerfile:
+2025-Nov-11 15:03:30.693088
+#1 transferring dockerfile: 1.47kB done
+2025-Nov-11 15:03:30.693088
+#1 DONE 0.3s
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#2 [internal] load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+2025-Nov-11 15:03:30.693088
+#2 ...
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#3 [auth] railwayapp/nixpacks:pull token for ghcr.io
+2025-Nov-11 15:03:30.693088
+#3 DONE 0.0s
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#2 [internal] load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+2025-Nov-11 15:03:30.693088
+#2 DONE 0.8s
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#4 [internal] load .dockerignore
+2025-Nov-11 15:03:30.693088
+#4 transferring context:
+2025-Nov-11 15:03:30.693088
+#4 transferring context: 2B done
+2025-Nov-11 15:03:30.693088
+#4 DONE 0.2s
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#5 [stage-0  1/11] FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067@sha256:d45c89d80e13d7ad0fd555b5130f22a866d9dd10e861f589932303ef2314c7de
+2025-Nov-11 15:03:30.693088
+#5 DONE 0.0s
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#6 [internal] load build context
+2025-Nov-11 15:03:30.693088
+#6 transferring context: 468.67kB 0.0s done
+2025-Nov-11 15:03:30.693088
+#6 DONE 0.3s
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#7 [stage-0  2/11] WORKDIR /app/
+2025-Nov-11 15:03:30.693088
+#7 CACHED
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#8 [stage-0  3/11] COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix
+2025-Nov-11 15:03:30.693088
+#8 CACHED
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#9 [stage-0  4/11] RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d
+2025-Nov-11 15:03:30.693088
+#9 CACHED
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#10 [stage-0  5/11] RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends curl wget
+2025-Nov-11 15:03:30.693088
+#10 CACHED
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#11 [stage-0  6/11] COPY . /app/.
+2025-Nov-11 15:03:30.693088
+#11 DONE 0.9s
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#12 [stage-0  7/11] RUN --mount=type=cache,id=icw8400gk8cogok4cg4cgokk-/root/npm,target=/root/.npm npm ci
+2025-Nov-11 15:03:30.693088
+#12 12.43
+2025-Nov-11 15:03:30.693088
+#12 12.43 added 454 packages, and audited 455 packages in 12s
+2025-Nov-11 15:03:30.693088
+#12 12.43
+2025-Nov-11 15:03:30.693088
+#12 12.43 143 packages are looking for funding
+2025-Nov-11 15:03:30.693088
+#12 12.43   run `npm fund` for details
+2025-Nov-11 15:03:30.693088
+#12 12.44
+2025-Nov-11 15:03:30.693088
+#12 12.44 1 moderate severity vulnerability
+2025-Nov-11 15:03:30.693088
+#12 12.44
+2025-Nov-11 15:03:30.693088
+#12 12.44 To address all issues, run:
+2025-Nov-11 15:03:30.693088
+#12 12.44   npm audit fix
+2025-Nov-11 15:03:30.693088
+#12 12.44
+2025-Nov-11 15:03:30.693088
+#12 12.44 Run `npm audit` for details.
+2025-Nov-11 15:03:30.693088
+#12 DONE 18.8s
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#13 [stage-0  8/11] COPY . /app/.
+2025-Nov-11 15:03:30.693088
+#13 DONE 1.5s
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+#14 [stage-0  9/11] RUN --mount=type=cache,id=icw8400gk8cogok4cg4cgokk-next/cache,target=/app/.next/cache --mount=type=cache,id=icw8400gk8cogok4cg4cgokk-node_modules/cache,target=/app/node_modules/.cache npm run build
+2025-Nov-11 15:03:30.693088
+#14 1.006
+2025-Nov-11 15:03:30.693088
+#14 1.006 > test-app@0.1.0 build
+2025-Nov-11 15:03:30.693088
+#14 1.006 > next build --turbopack
+2025-Nov-11 15:03:30.693088
+#14 1.006
+2025-Nov-11 15:03:30.693088
+#14 2.049 Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2025-Nov-11 15:03:30.693088
+#14 2.050 This information is used to shape Next.js' roadmap and prioritize features.
+2025-Nov-11 15:03:30.693088
+#14 2.050 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2025-Nov-11 15:03:30.693088
+#14 2.050 https://nextjs.org/telemetry
+2025-Nov-11 15:03:30.693088
+#14 2.050
+2025-Nov-11 15:03:30.693088
+#14 2.156    ▲ Next.js 15.5.4 (Turbopack)
+2025-Nov-11 15:03:30.693088
+#14 2.156
+2025-Nov-11 15:03:30.693088
+#14 2.276    Creating an optimized production build ...
+2025-Nov-11 15:03:30.693088
+#14 3.277  ⚠ Slow filesystem detected. The benchmark took 114ms. If /app/.next is a network drive, consider moving it to a local folder. If you have an antivirus enabled, consider excluding your project directory.
+2025-Nov-11 15:03:30.693088
+#14 9.881  ✓ Finished writing to disk in 23ms
+2025-Nov-11 15:03:30.693088
+#14 9.912  ✓ Compiled successfully in 6.8s
+2025-Nov-11 15:03:30.693088
+#14 9.917    Linting and checking validity of types ...
+2025-Nov-11 15:03:30.693088
+#14 13.15
+2025-Nov-11 15:03:30.693088
+#14 13.15 ./app/admin/layout.tsx
+2025-Nov-11 15:03:30.693088
+#14 13.15 21:3  Warning: 'SheetHeader' is defined but never used.  @typescript-eslint/no-unused-vars
+2025-Nov-11 15:03:30.693088
+#14 13.15
+2025-Nov-11 15:03:30.693088
+#14 13.15 info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+2025-Nov-11 15:03:30.693088
+#14 15.94 Failed to compile.
+2025-Nov-11 15:03:30.693088
+#14 15.94
+2025-Nov-11 15:03:30.693088
+#14 15.94 ./app/admin/layout.tsx:90:14
+2025-Nov-11 15:03:30.693088
+#14 15.94 Type error: 'item.children' is possibly 'undefined'.
+2025-Nov-11 15:03:30.693088
+#14 15.94
+2025-Nov-11 15:03:30.693088
+#14 15.94   88 |         {isExpanded && (
+2025-Nov-11 15:03:30.693088
+#14 15.94   89 |           <div className="ml-3 space-y-1 border-l-2 border-gray-200 pl-2">
+2025-Nov-11 15:03:30.693088
+#14 15.94 > 90 |             {item.children.map((child) => (
+2025-Nov-11 15:03:30.693088
+#14 15.94      |              ^
+2025-Nov-11 15:03:30.693088
+#14 15.94   91 |               <NavigationItem
+2025-Nov-11 15:03:30.693088
+#14 15.94   92 |                 key={child.href || child.name}
+2025-Nov-11 15:03:30.693088
+#14 15.94   93 |                 item={child}
+2025-Nov-11 15:03:30.693088
+#14 15.99 Next.js build worker exited with code: 1 and signal: null
+2025-Nov-11 15:03:30.693088
+#14 16.02 npm notice
+2025-Nov-11 15:03:30.693088
+#14 16.02 npm notice New major version of npm available! 10.8.2 -> 11.6.2
+2025-Nov-11 15:03:30.693088
+#14 16.02 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.2
+2025-Nov-11 15:03:30.693088
+#14 16.02 npm notice To update run: npm install -g npm@11.6.2
+2025-Nov-11 15:03:30.693088
+#14 16.02 npm notice
+2025-Nov-11 15:03:30.693088
+#14 ERROR: process "/bin/bash -ol pipefail -c npm run build" did not complete successfully: exit code: 1
+2025-Nov-11 15:03:30.693088
+------
+2025-Nov-11 15:03:30.693088
+> [stage-0  9/11] RUN --mount=type=cache,id=icw8400gk8cogok4cg4cgokk-next/cache,target=/app/.next/cache --mount=type=cache,id=icw8400gk8cogok4cg4cgokk-node_modules/cache,target=/app/node_modules/.cache npm run build:
+2025-Nov-11 15:03:30.693088
+15.94      |              ^
+2025-Nov-11 15:03:30.693088
+15.94   91 |               <NavigationItem
+2025-Nov-11 15:03:30.693088
+15.94   92 |                 key={child.href || child.name}
+2025-Nov-11 15:03:30.693088
+15.94   93 |                 item={child}
+2025-Nov-11 15:03:30.693088
+15.99 Next.js build worker exited with code: 1 and signal: null
+2025-Nov-11 15:03:30.693088
+16.02 npm notice
+2025-Nov-11 15:03:30.693088
+16.02 npm notice New major version of npm available! 10.8.2 -> 11.6.2
+2025-Nov-11 15:03:30.693088
+16.02 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.2
+2025-Nov-11 15:03:30.693088
+16.02 npm notice To update run: npm install -g npm@11.6.2
+2025-Nov-11 15:03:30.693088
+16.02 npm notice
+2025-Nov-11 15:03:30.693088
+------
+2025-Nov-11 15:03:30.693088
+2025-Nov-11 15:03:30.693088
+1 warning found (use docker --debug to expand):
+2025-Nov-11 15:03:30.693088
+- UndefinedVar: Usage of undefined variable '$NIXPACKS_PATH' (line 18)
+2025-Nov-11 15:03:30.693088
+Dockerfile:24
+2025-Nov-11 15:03:30.693088
+--------------------
+2025-Nov-11 15:03:30.693088
+22 |     # build phase
+2025-Nov-11 15:03:30.693088
+23 |     COPY . /app/.
+2025-Nov-11 15:03:30.693088
+24 | >>> RUN --mount=type=cache,id=icw8400gk8cogok4cg4cgokk-next/cache,target=/app/.next/cache --mount=type=cache,id=icw8400gk8cogok4cg4cgokk-node_modules/cache,target=/app/node_modules/.cache npm run build
+2025-Nov-11 15:03:30.693088
+25 |
+2025-Nov-11 15:03:30.693088
+26 |
+2025-Nov-11 15:03:30.693088
+--------------------
+2025-Nov-11 15:03:30.693088
+ERROR: failed to build: failed to solve: process "/bin/bash -ol pipefail -c npm run build" did not complete successfully: exit code: 1
+2025-Nov-11 15:03:30.693088
+exit status 1
+2025-Nov-11 15:03:30.734908
+Deployment failed. Removing the new version of your application.
