@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, ChevronDown, ChevronRight } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,7 +115,24 @@ function NavigationItem({
 }
 
 // Sidebar content component for reuse
-function SidebarContent({ pathname, onNavClick }: { pathname: string; onNavClick?: () => void }) {
+function SidebarContent({
+  pathname,
+  onNavClick,
+  user,
+  onLogout
+}: {
+  pathname: string;
+  onNavClick?: () => void;
+  user: { firstName: string; lastName: string; email: string } | null;
+  onLogout: () => void;
+}) {
+  const userInitials = user
+    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'U'
+    : 'U';
+  const userName = user
+    ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User'
+    : 'User';
+
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
       {/* Logo */}
@@ -147,12 +165,12 @@ function SidebarContent({ pathname, onNavClick }: { pathname: string; onNavClick
               <div className="flex items-center gap-3">
                 <Avatar>
                   <AvatarImage src="" />
-                  <AvatarFallback>AD</AvatarFallback>
+                  <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start text-sm">
-                  <span className="font-medium">Admin User</span>
+                  <span className="font-medium">{userName}</span>
                   <span className="text-xs text-gray-500">
-                    admin@example.com
+                    {user?.email || 'user@example.com'}
                   </span>
                 </div>
               </div>
@@ -161,13 +179,15 @@ function SidebarContent({ pathname, onNavClick }: { pathname: string; onNavClick
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/admin/profile">Profile</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/admin/settings">Settings</Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Link href="/login" className="w-full">
-                Log out
-              </Link>
+            <DropdownMenuItem onClick={onLogout} className="cursor-pointer">
+              Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -182,20 +202,40 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, logout, isLoading } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Desktop Sidebar - Hidden on mobile */}
       <aside className="hidden md:flex md:w-64 bg-white border-r border-gray-200">
-        <SidebarContent pathname={pathname} />
+        <SidebarContent pathname={pathname} user={user} onLogout={handleLogout} />
       </aside>
 
       {/* Mobile Sheet */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetContent side="left" className="w-64 p-0 gap-0">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-          <SidebarContent pathname={pathname} onNavClick={() => setMobileMenuOpen(false)} />
+          <SidebarContent
+            pathname={pathname}
+            onNavClick={() => setMobileMenuOpen(false)}
+            user={user}
+            onLogout={handleLogout}
+          />
         </SheetContent>
       </Sheet>
 
