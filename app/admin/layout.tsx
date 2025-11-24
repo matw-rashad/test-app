@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, ChevronDown, ChevronRight } from "lucide-react";
@@ -30,7 +30,13 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { name: "Dashboard", href: "/admin" },
-  { name: "Users", href: "/admin/users" },
+  {
+    name: "Users",
+    children: [
+      { name: "User List", href: "/admin/users" },
+      { name: "Create User", href: "/admin/users/new" },
+    ]
+  },
   {
     name: "Products",
     children: [
@@ -205,16 +211,28 @@ export default function AdminLayout({
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout, isLoading } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     router.push('/login');
   };
 
-  if (isLoading) {
+  //Redirect to login if not authenticated after loading
+  useEffect(() => {
+    if (!isLoading && !user && !isRedirecting) {
+      setIsRedirecting(true);
+      handleLogout();
+    }
+  }, [isLoading, user, isRedirecting, router]);
+
+  // Show loading while checking auth or redirecting
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-gray-500">
+          {isLoading ? "Loading..." : "Redirecting to login..."}
+        </div>
       </div>
     );
   }

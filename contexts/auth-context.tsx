@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, LoginRequest, RegisterRequest } from '@/types/auth';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -27,9 +28,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(data.user);
       } else {
         setUser(null);
+        console.log('Failed to refresh user');
       }
-    } catch {
+    } catch (error) {
+      // Connection lost or network error - logout user
+      toast.error('Connection lost. Please check your network.');
+      console.error('API connection lost:', error);
       setUser(null);
+      // Attempt to clear server session if possible
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } catch {
+        // Ignore logout errors when connection is lost
+      }
     } finally {
       setIsLoading(false);
     }
