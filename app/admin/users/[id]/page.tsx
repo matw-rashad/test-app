@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
   CardContent,
@@ -31,13 +33,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50, "First name must be less than 50 characters"),
   lastName: z.string().min(1, "Last name is required").max(50, "Last name must be less than 50 characters"),
   email: z.string().min(1, "Email is required").email("Invalid email address"),
-  roles: z.array(z.string()).min(1, "At least one role is required"),
+  role: z.string().min(1, "Role is required"),
+  isActive: z.boolean(),
   password: z.string().optional(),
   confirmPassword: z.string().optional(),
 }).refine((data) => {
@@ -77,7 +80,8 @@ export default function EditUserPage() {
       firstName: "",
       lastName: "",
       email: "",
-      roles: [],
+      role: "",
+      isActive: true,
       password: "",
       confirmPassword: "",
     },
@@ -99,11 +103,13 @@ export default function EditUserPage() {
       }
 
       // Map API response (PascalCase) to form values (camelCase)
+      const roles = data.Roles || data.roles || [];
       const user = {
         firstName: data.FirstName || data.firstName || "",
         lastName: data.LastName || data.lastName || "",
         email: data.Email || data.email || "",
-        roles: data.Roles || data.roles || [],
+        role: roles.length > 0 ? roles[0] : "",
+        isActive: data.IsActive !== undefined ? data.IsActive : (data.isActive !== undefined ? data.isActive : true),
       };
 
       form.reset(user);
@@ -122,8 +128,8 @@ export default function EditUserPage() {
       const payload: any = {
         firstName: values.firstName,
         lastName: values.lastName,
-        email: values.email,
-        roles: values.roles,
+        roles: [values.role],
+        isActive: values.isActive,
       };
 
       // Only include password if it's provided
@@ -153,8 +159,40 @@ export default function EditUserPage() {
 
   if (isFetching) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-500">Loading user...</p>
+      <div className="space-y-6 p-4 md:p-8">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10 rounded-md" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-[200px]" />
+            <Skeleton className="h-4 w-[300px]" />
+          </div>
+        </div>
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <Skeleton className="h-6 w-[150px]" />
+            <Skeleton className="h-4 w-[250px]" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[100px]" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[100px]" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-[100px]" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-[100px]" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -186,9 +224,10 @@ export default function EditUserPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               {error && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
-                  {error}
-                </div>
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -238,10 +277,14 @@ export default function EditUserPage() {
                       <Input
                         type="email"
                         placeholder="john@example.com"
-                        disabled={isLoading}
+                        disabled={true}
+                        className="bg-muted cursor-not-allowed"
                         {...field}
                       />
                     </FormControl>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Email cannot be changed (used for login)
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -249,47 +292,54 @@ export default function EditUserPage() {
 
               <FormField
                 control={form.control}
-                name="roles"
-                render={() => (
+                name="role"
+                render={({ field }) => (
                   <FormItem>
-                    <div className="mb-4">
-                      <FormLabel>Roles</FormLabel>
-                    </div>
-                    {availableRoles.map((role) => (
-                      <FormField
-                        key={role}
-                        control={form.control}
-                        name="roles"
-                        render={({ field }) => {
-                          return (
-                            <FormItem
-                              key={role}
-                              className="flex flex-row items-start space-x-3 space-y-0"
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(role)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...field.value, role])
-                                      : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== role
-                                          )
-                                        );
-                                  }}
-                                  disabled={isLoading}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                {role}
-                              </FormLabel>
-                            </FormItem>
-                          );
-                        }}
-                      />
-                    ))}
+                    <FormLabel>Role</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                      disabled={isLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableRoles.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {role}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">
+                        Account Status
+                      </FormLabel>
+                      <div className="text-sm text-muted-foreground">
+                        {field.value ? "User account is active" : "User account is deactivated"}
+                      </div>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />

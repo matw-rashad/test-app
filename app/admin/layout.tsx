@@ -7,6 +7,7 @@ import { Menu, ChevronDown, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,7 +82,7 @@ function NavigationItem({
       <div className="space-y-1">
         <Button
           variant={isParentActive ? "secondary" : "ghost"}
-          className="w-full justify-between"
+          className="w-full justify-between px-3"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <span>{item.name}</span>
@@ -112,7 +113,7 @@ function NavigationItem({
     <Link href={item.href!} onClick={onNavClick}>
       <Button
         variant={isActive ? "secondary" : "ghost"}
-        className="w-full justify-start"
+        className="w-full justify-start px-3"
       >
         {item.name}
       </Button>
@@ -230,8 +231,11 @@ export default function AdminLayout({
   if (isLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-gray-500">
-          {isLoading ? "Loading..." : "Redirecting to login..."}
+        <div className="text-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-gray-500">
+            {isLoading ? "Loading..." : "Redirecting to login..."}
+          </p>
         </div>
       </div>
     );
