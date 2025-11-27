@@ -66,9 +66,10 @@ export default function CreateUserPage() {
   const onSubmit = async (values: FormValues) => {
     setError("");
     setIsLoading(true);
+    console.log(values);
 
     try {
-      const response = await fetch("/api/users", {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

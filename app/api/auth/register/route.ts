@@ -6,12 +6,23 @@ const COOKIE_NAME = process.env.JWT_COOKIE_NAME || 'auth_token';
 
 export async function POST(request: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(COOKIE_NAME)?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { message: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     const response = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     });
@@ -20,31 +31,19 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { message: data.message || 'Registration failed', errors: data.errors },
+        { message: data.message || 'Failed to create user', errors: data.errors },
         { status: response.status }
       );
     }
 
-    // If the API returns a token on registration, set the cookie
-    if (data.token) {
-      const cookieStore = await cookies();
-      cookieStore.set(COOKIE_NAME, data.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: data.expiresIn || 60 * 60 * 24 * 7,
-        path: '/',
-      });
-    }
-
     return NextResponse.json({
-      user: data.user,
-      message: 'Registration successful',
+      user: data.user || data,
+      message: 'User created successfully',
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Create user error:', error);
     return NextResponse.json(
-      { message: 'An error occurred during registration' },
+      { message: 'An error occurred while creating user' },
       { status: 500 }
     );
   }
