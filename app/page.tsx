@@ -21,8 +21,8 @@ export default function Home() {
 
   return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <Spinner size="lg" />
+      <div className="felx justify-items-center text-center  ">
+        <Spinner/>
         <p className="mt-4 text-gray-600">Redirecting...</p>
       </div>
     </div>
