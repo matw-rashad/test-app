@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-const API_URL = process.env.API_URL || 'http://localhost:85';
+
+//const API_URL = process.env.API_URL || 'http://localhost:85';
+const API_URL = process.env.API_URL;
 const COOKIE_NAME = process.env.JWT_COOKIE_NAME || 'auth_token';
 
 export async function POST(request: NextRequest) {
-  try {
+  try {     
     const body = await request.json();
-
     const response = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
       headers: {

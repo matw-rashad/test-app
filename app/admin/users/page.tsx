@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, UserPlus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Empty } from "@/components/ui/empty";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "@/components/ui/empty";
 import {
   Pagination,
   PaginationContent,
@@ -243,16 +243,20 @@ export default function UsersPage() {
               ))}
             </div>
           ) : users.length === 0 ? (
-            <Empty
-              icon={UserPlus}
-              title="No users found"
-              description="Get started by adding your first user to the system"
-              action={
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <UserPlus />
+                </EmptyMedia>
+                <EmptyTitle>No users found</EmptyTitle>
+                <EmptyDescription>Get started by adding your first user to the system</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
                 <Button asChild>
                   <Link href="/admin/users/new">Add User</Link>
                 </Button>
-              }
-            />
+              </EmptyContent>
+            </Empty>
           ) : (
             <Table>
               <TableHeader>

@@ -1,0 +1,9 @@
+services:
+  app:
+    image: ghcr.io/matw-rashad/automation-web-app:latest
+    container_name: automation-web-app
+    env_file:
+      - .env
+    ports:
+      - "3001:3000"
+    restart: unless-stopped

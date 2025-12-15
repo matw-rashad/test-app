@@ -232,7 +232,7 @@ export default function AdminLayout({
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <Spinner size="lg" />
+          <Spinner className="size-8" />
           <p className="mt-4 text-gray-500">
             {isLoading ? "Loading..." : "Redirecting to login..."}
           </p>
