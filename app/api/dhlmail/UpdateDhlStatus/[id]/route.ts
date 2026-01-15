@@ -22,7 +22,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const response = await fetch(`${MIDDLEWARE_URL}/api/dhlmail/UpdateDhlStatus/${id}`, {
+    const response = await fetch(`${MIDDLEWARE_URL}/api/dhlmail/statuses/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

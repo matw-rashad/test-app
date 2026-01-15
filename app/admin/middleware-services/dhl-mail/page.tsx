@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// DHL Status interfaces
 interface DHLStatus {
   id: number;
   service: string;
@@ -48,7 +49,24 @@ interface DHLStatusFormData {
   duration: number;
 }
 
-const initialFormData: DHLStatusFormData = {
+// DHL Mail Template interfaces
+interface DHLMailTemplate {
+  id: number;
+  trackingStatusCode: string;
+  templateKey: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface DHLMailTemplateFormData {
+  templateKey: string;
+  description: string;
+  isActive: boolean;
+}
+
+const initialStatusFormData: DHLStatusFormData = {
   service: "",
   status: "",
   statusCode: "",
@@ -58,24 +76,43 @@ const initialFormData: DHLStatusFormData = {
   duration: 0,
 };
 
+const initialTemplateFormData: DHLMailTemplateFormData = {
+  templateKey: "",
+  description: "",
+  isActive: true,
+};
+
 export default function DHLMailConfiguration() {
+  // DHL Status state
   const [statuses, setStatuses] = useState<DHLStatus[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<DHLStatusFormData>(initialFormData);
-  const [formError, setFormError] = useState("");
+  const [isLoadingStatuses, setIsLoadingStatuses] = useState(true);
+  const [statusError, setStatusError] = useState("");
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [isSubmittingStatus, setIsSubmittingStatus] = useState(false);
+  const [statusFormData, setStatusFormData] = useState<DHLStatusFormData>(initialStatusFormData);
+  const [statusFormError, setStatusFormError] = useState("");
   const [editingStatus, setEditingStatus] = useState<DHLStatus | null>(null);
+
+  // DHL Mail Template state
+  const [templates, setTemplates] = useState<DHLMailTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+  const [templateError, setTemplateError] = useState("");
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isSubmittingTemplate, setIsSubmittingTemplate] = useState(false);
+  const [templateFormData, setTemplateFormData] = useState<DHLMailTemplateFormData>(initialTemplateFormData);
+  const [templateFormError, setTemplateFormError] = useState("");
+  const [editingTemplate, setEditingTemplate] = useState<DHLMailTemplate | null>(null);
 
   useEffect(() => {
     fetchStatuses();
+    fetchTemplates();
   }, []);
 
+  // ==================== DHL Status Functions ====================
   const fetchStatuses = async () => {
     try {
-      setIsLoading(true);
-      setError("");
+      setIsLoadingStatuses(true);
+      setStatusError("");
       const response = await fetch("/api/dhlmail/GetDhlStatuses");
       const data = await response.json();
 
@@ -96,22 +133,22 @@ export default function DHLMailConfiguration() {
 
       setStatuses(statusesData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch DHL statuses");
+      setStatusError(err instanceof Error ? err.message : "Failed to fetch DHL statuses");
     } finally {
-      setIsLoading(false);
+      setIsLoadingStatuses(false);
     }
   };
 
-  const handleOpenCreate = () => {
+  const handleOpenCreateStatus = () => {
     setEditingStatus(null);
-    setFormData(initialFormData);
-    setFormError("");
-    setIsDialogOpen(true);
+    setStatusFormData(initialStatusFormData);
+    setStatusFormError("");
+    setIsStatusDialogOpen(true);
   };
 
-  const handleOpenEdit = (status: DHLStatus) => {
+  const handleOpenEditStatus = (status: DHLStatus) => {
     setEditingStatus(status);
-    setFormData({
+    setStatusFormData({
       service: status.service,
       status: status.status,
       statusCode: status.statusCode || "",
@@ -120,43 +157,43 @@ export default function DHLMailConfiguration() {
       timeCheck: status.timeCheck,
       duration: status.duration,
     });
-    setFormError("");
-    setIsDialogOpen(true);
+    setStatusFormError("");
+    setIsStatusDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
+  const handleCloseStatusDialog = () => {
+    setIsStatusDialogOpen(false);
     setEditingStatus(null);
-    setFormData(initialFormData);
-    setFormError("");
+    setStatusFormData(initialStatusFormData);
+    setStatusFormError("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitStatus = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError("");
+    setStatusFormError("");
 
-    if (!formData.service.trim()) {
-      setFormError("Service is required");
+    if (!statusFormData.service.trim()) {
+      setStatusFormError("Service is required");
       return;
     }
-    if (!formData.status.trim()) {
-      setFormError("Status is required");
+    if (!statusFormData.status.trim()) {
+      setStatusFormError("Status is required");
       return;
     }
-    if (formData.service.length > 20) {
-      setFormError("Service must be 20 characters or less");
+    if (statusFormData.service.length > 20) {
+      setStatusFormError("Service must be 20 characters or less");
       return;
     }
-    if (formData.status.length > 20) {
-      setFormError("Status must be 20 characters or less");
+    if (statusFormData.status.length > 20) {
+      setStatusFormError("Status must be 20 characters or less");
       return;
     }
-    if (formData.description.length > 250) {
-      setFormError("Description must be 250 characters or less");
+    if (statusFormData.description.length > 250) {
+      setStatusFormError("Description must be 250 characters or less");
       return;
     }
 
-    setIsSubmitting(true);
+    setIsSubmittingStatus(true);
 
     try {
       const url = editingStatus
@@ -169,13 +206,13 @@ export default function DHLMailConfiguration() {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          service: formData.service,
-          status: formData.status,
-          statusCode: formData.statusCode || null,
-          description: formData.description || null,
-          sendMail: formData.sendMail,
-          timeCheck: formData.timeCheck,
-          duration: formData.timeCheck ? formData.duration : 0,
+          service: statusFormData.service,
+          status: statusFormData.status,
+          statusCode: statusFormData.statusCode || null,
+          description: statusFormData.description || null,
+          sendMail: statusFormData.sendMail,
+          timeCheck: statusFormData.timeCheck,
+          duration: statusFormData.timeCheck ? statusFormData.duration : 0,
         }),
       });
 
@@ -185,12 +222,118 @@ export default function DHLMailConfiguration() {
         throw new Error(data.message || `Failed to ${editingStatus ? "update" : "create"} DHL status`);
       }
 
-      handleCloseDialog();
+      handleCloseStatusDialog();
       await fetchStatuses();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : `Failed to ${editingStatus ? "update" : "create"} DHL status`);
+      setStatusFormError(err instanceof Error ? err.message : `Failed to ${editingStatus ? "update" : "create"} DHL status`);
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingStatus(false);
+    }
+  };
+
+  // ==================== DHL Mail Template Functions ====================
+  const fetchTemplates = async () => {
+    try {
+      setIsLoadingTemplates(true);
+      setTemplateError("");
+      const response = await fetch("/api/dhlmail/templates");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch DHL mail templates");
+      }
+
+      const templatesData = (data.templates || data.data || data || []).map((item: any) => ({
+        id: item.Id || item.id,
+        trackingStatusCode: item.TrackingStatusCode || item.trackingStatusCode,
+        templateKey: item.TemplateKey || item.templateKey,
+        description: item.Description || item.description,
+        isActive: item.IsActive ?? item.isActive ?? true,
+        createdAt: item.CreatedAt || item.createdAt,
+        updatedAt: item.UpdatedAt || item.updatedAt,
+      }));
+
+      setTemplates(templatesData);
+    } catch (err) {
+      setTemplateError(err instanceof Error ? err.message : "Failed to fetch DHL mail templates");
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  };
+
+  const handleOpenCreateTemplate = () => {
+    setEditingTemplate(null);
+    setTemplateFormData(initialTemplateFormData);
+    setTemplateFormError("");
+    setIsTemplateDialogOpen(true);
+  };
+
+  const handleOpenEditTemplate = (template: DHLMailTemplate) => {
+    setEditingTemplate(template);
+    setTemplateFormData({
+      templateKey: template.templateKey,
+      description: template.description || "",
+      isActive: template.isActive,
+    });
+    setTemplateFormError("");
+    setIsTemplateDialogOpen(true);
+  };
+
+  const handleCloseTemplateDialog = () => {
+    setIsTemplateDialogOpen(false);
+    setEditingTemplate(null);
+    setTemplateFormData(initialTemplateFormData);
+    setTemplateFormError("");
+  };
+
+  const handleSubmitTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTemplateFormError("");
+
+    if (!templateFormData.templateKey.trim()) {
+      setTemplateFormError("Template Key is required");
+      return;
+    }
+    if (templateFormData.templateKey.length > 100) {
+      setTemplateFormError("Template Key must be 100 characters or less");
+      return;
+    }
+    if (templateFormData.description.length > 250) {
+      setTemplateFormError("Description must be 250 characters or less");
+      return;
+    }
+
+    setIsSubmittingTemplate(true);
+
+    try {
+      const url = editingTemplate
+        ? `/api/dhlmail/templates/${editingTemplate.id}`
+        : "/api/dhlmail/templates";
+
+      const method = editingTemplate ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateKey: templateFormData.templateKey,
+          description: templateFormData.description || null,
+          isActive: templateFormData.isActive,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to ${editingTemplate ? "update" : "create"} template`);
+      }
+
+      handleCloseTemplateDialog();
+      await fetchTemplates();
+    } catch (err) {
+      setTemplateFormError(err instanceof Error ? err.message : `Failed to ${editingTemplate ? "update" : "create"} template`);
+    } finally {
+      setIsSubmittingTemplate(false);
     }
   };
 
@@ -205,7 +348,7 @@ export default function DHLMailConfiguration() {
       </div>
 
       {/* Configuration Cards */}
-      <div className="grid gap-4 md:gap-6">  
+      <div className="grid gap-4 md:gap-6">
         {/* DHL Statuses Table */}
         <Card>
           <CardHeader className="p-4 md:p-6">
@@ -216,21 +359,21 @@ export default function DHLMailConfiguration() {
                   Manage DHL status configurations
                 </CardDescription>
               </div>
-              <Button onClick={handleOpenCreate} size="sm">
+              <Button onClick={handleOpenCreateStatus} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Create New
               </Button>
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-            {error && (
+            {statusError && (
               <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>{statusError}</AlertDescription>
               </Alert>
             )}
 
-            {isLoading ? (
+            {isLoadingStatuses ? (
               <div className="space-y-4">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="flex items-center gap-3">
@@ -273,7 +416,7 @@ export default function DHLMailConfiguration() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleOpenEdit(status)}
+                          onClick={() => handleOpenEditStatus(status)}
                         >
                           Edit
                         </Button>
@@ -284,11 +427,95 @@ export default function DHLMailConfiguration() {
               </Table>
             )}
           </CardContent>
-        </Card>       
+        </Card>
+
+        {/* DHL Mail Templates Table */}
+        <Card>
+          <CardHeader className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base md:text-lg">DHL Mail Templates</CardTitle>
+                <CardDescription className="text-xs md:text-sm">
+                  Manage DHL mail template configurations
+                </CardDescription>
+              </div>
+              <Button onClick={handleOpenCreateTemplate} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Create New
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+            {templateError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{templateError}</AlertDescription>
+              </Alert>
+            )}
+
+            {isLoadingTemplates ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="h-4 w-[50px]" />
+                    <Skeleton className="h-4 w-[150px]" />
+                    <Skeleton className="h-4 flex-1" />
+                    <Skeleton className="h-4 w-[60px]" />
+                    <Skeleton className="h-8 w-[60px]" />
+                  </div>
+                ))}
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No DHL mail templates configured yet.</p>
+                <p className="text-sm">Click &quot;Create New&quot; to add your first template.</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Id</TableHead>
+                    <TableHead>Tracking Status Code</TableHead>
+                    <TableHead>Template Key</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {templates.map((template) => (
+                    <TableRow key={template.id}>
+                      <TableCell className="font-medium">{template.id}</TableCell>
+                      <TableCell className="font-medium">{template.trackingStatusCode}</TableCell>
+                      <TableCell>{template.templateKey}</TableCell>
+                      <TableCell className="text-gray-600 max-w-[300px] truncate">
+                        {template.description || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={template.isActive ? "default" : "secondary"}>
+                          {template.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEditTemplate(template)}
+                        >
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Create/Edit DHL Status Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
@@ -300,12 +527,12 @@ export default function DHLMailConfiguration() {
                 : "Add a new DHL status configuration."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmitStatus}>
             <div className="grid gap-4 py-4">
-              {formError && (
+              {statusFormError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{formError}</AlertDescription>
+                  <AlertDescription>{statusFormError}</AlertDescription>
                 </Alert>
               )}
 
@@ -316,13 +543,13 @@ export default function DHLMailConfiguration() {
                   </Label>
                   <Input
                     id="service"
-                    value={formData.service}
-                    onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+                    value={statusFormData.service}
+                    onChange={(e) => setStatusFormData({ ...statusFormData, service: e.target.value })}
                     maxLength={20}
                     placeholder="Enter service name"
-                    disabled={isSubmitting}
+                    disabled={isSubmittingStatus}
                   />
-                  <p className="text-xs text-gray-500">{formData.service.length}/20</p>
+                  <p className="text-xs text-gray-500">{statusFormData.service.length}/20</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status">
@@ -330,13 +557,13 @@ export default function DHLMailConfiguration() {
                   </Label>
                   <Input
                     id="status"
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    value={statusFormData.status}
+                    onChange={(e) => setStatusFormData({ ...statusFormData, status: e.target.value })}
                     maxLength={20}
                     placeholder="Enter status"
-                    disabled={isSubmitting}
+                    disabled={isSubmittingStatus}
                   />
-                  <p className="text-xs text-gray-500">{formData.status.length}/20</p>
+                  <p className="text-xs text-gray-500">{statusFormData.status.length}/20</p>
                 </div>
               </div>
 
@@ -344,24 +571,24 @@ export default function DHLMailConfiguration() {
                 <Label htmlFor="statusCode">Status Code</Label>
                 <Input
                   id="statusCode"
-                  value={formData.statusCode}
-                  onChange={(e) => setFormData({ ...formData, statusCode: e.target.value })}
+                  value={statusFormData.statusCode}
+                  onChange={(e) => setStatusFormData({ ...statusFormData, statusCode: e.target.value })}
                   placeholder="Enter status code"
-                  disabled={isSubmitting}
+                  disabled={isSubmittingStatus}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="statusDescription">Description</Label>
                 <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  id="statusDescription"
+                  value={statusFormData.description}
+                  onChange={(e) => setStatusFormData({ ...statusFormData, description: e.target.value })}
                   maxLength={250}
                   placeholder="Enter description"
-                  disabled={isSubmitting}
+                  disabled={isSubmittingStatus}
                 />
-                <p className="text-xs text-gray-500">{formData.description.length}/250</p>
+                <p className="text-xs text-gray-500">{statusFormData.description.length}/250</p>
               </div>
 
               <div className="flex items-center justify-between">
@@ -371,9 +598,9 @@ export default function DHLMailConfiguration() {
                 </div>
                 <Switch
                   id="sendMail"
-                  checked={formData.sendMail}
-                  onCheckedChange={(checked) => setFormData({ ...formData, sendMail: checked })}
-                  disabled={isSubmitting}
+                  checked={statusFormData.sendMail}
+                  onCheckedChange={(checked) => setStatusFormData({ ...statusFormData, sendMail: checked })}
+                  disabled={isSubmittingStatus}
                 />
               </div>
 
@@ -384,9 +611,9 @@ export default function DHLMailConfiguration() {
                 </div>
                 <Switch
                   id="timeCheck"
-                  checked={formData.timeCheck}
-                  onCheckedChange={(checked) => setFormData({ ...formData, timeCheck: checked })}
-                  disabled={isSubmitting}
+                  checked={statusFormData.timeCheck}
+                  onCheckedChange={(checked) => setStatusFormData({ ...statusFormData, timeCheck: checked })}
+                  disabled={isSubmittingStatus}
                 />
               </div>
 
@@ -396,28 +623,112 @@ export default function DHLMailConfiguration() {
                   id="duration"
                   type="number"
                   min={0}
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
+                  value={statusFormData.duration}
+                  onChange={(e) => setStatusFormData({ ...statusFormData, duration: parseInt(e.target.value) || 0 })}
                   placeholder="Enter duration in hours"
-                  disabled={isSubmitting || !formData.timeCheck}
+                  disabled={isSubmittingStatus || !statusFormData.timeCheck}
                 />
-                {!formData.timeCheck && (
+                {!statusFormData.timeCheck && (
                   <p className="text-xs text-gray-500">Enable &quot;Time Check&quot; to set duration</p>
                 )}
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isSubmitting}>
+              <Button type="button" variant="outline" onClick={handleCloseStatusDialog} disabled={isSubmittingStatus}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
+              <Button type="submit" disabled={isSubmittingStatus}>
+                {isSubmittingStatus
                   ? editingStatus
                     ? "Updating..."
                     : "Creating..."
                   : editingStatus
                     ? "Update Status"
                     : "Create Status"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit DHL Mail Template Dialog */}
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTemplate ? "Edit DHL Mail Template" : "Create New DHL Mail Template"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingTemplate
+                ? "Update the DHL mail template configuration."
+                : "Add a new DHL mail template configuration."}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitTemplate}>
+            <div className="grid gap-4 py-4">
+              {templateFormError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{templateFormError}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="templateKey">
+                  Template Key <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="templateKey"
+                  value={templateFormData.templateKey}
+                  onChange={(e) => setTemplateFormData({ ...templateFormData, templateKey: e.target.value })}
+                  maxLength={100}
+                  placeholder="Enter template key"
+                  disabled={isSubmittingTemplate || !!editingTemplate}
+                />
+                <p className="text-xs text-gray-500">{templateFormData.templateKey.length}/100</p>
+                {editingTemplate && (
+                  <p className="text-xs text-amber-600">Template key cannot be changed after creation</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="templateDescription">Description</Label>
+                <Input
+                  id="templateDescription"
+                  value={templateFormData.description}
+                  onChange={(e) => setTemplateFormData({ ...templateFormData, description: e.target.value })}
+                  maxLength={250}
+                  placeholder="Enter description"
+                  disabled={isSubmittingTemplate}
+                />
+                <p className="text-xs text-gray-500">{templateFormData.description.length}/250</p>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="isActive">Active</Label>
+                  <p className="text-xs text-gray-500">Enable or disable this template</p>
+                </div>
+                <Switch
+                  id="isActive"
+                  checked={templateFormData.isActive}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, isActive: checked })}
+                  disabled={isSubmittingTemplate}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleCloseTemplateDialog} disabled={isSubmittingTemplate}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmittingTemplate}>
+                {isSubmittingTemplate
+                  ? editingTemplate
+                    ? "Updating..."
+                    : "Creating..."
+                  : editingTemplate
+                    ? "Update Template"
+                    : "Create Template"}
               </Button>
             </DialogFooter>
           </form>

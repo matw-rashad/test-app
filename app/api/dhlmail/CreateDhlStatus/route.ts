@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    const response = await fetch(`${MIDDLEWARE_URL}/api/dhlmail/CreateDhlStatus`, {
+    const response = await fetch(`${MIDDLEWARE_URL}/api/dhlmail/statuses`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

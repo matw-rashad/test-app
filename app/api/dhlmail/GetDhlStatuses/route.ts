@@ -16,7 +16,7 @@ export async function GET() {
       );
     }
 
-    const response = await fetch(`${MIDDLEWARE_URL}/api/dhlmail/GetDhlStatuses`, {
+    const response = await fetch(`${MIDDLEWARE_URL}/api/dhlmail/statuses`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
