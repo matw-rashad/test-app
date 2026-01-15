@@ -54,6 +54,14 @@ const navItems: NavItem[] = [
       { name: "Security", href: "/admin/configuration/security" },
       { name: "Integrations", href: "/admin/configuration/integrations" },
       { name: "API Keys", href: "/admin/configuration/api-keys" },
+      { name: "Services", href: "/admin/configuration/services" },
+    ]
+  },
+  {
+    name: "Middleware Services",
+    children: [
+      { name: "DHL Mail Configuration", href: "/admin/middleware-services/dhl-mail" },
+      { name: "Message Service Configuration", href: "/admin/middleware-services/message-service" },
     ]
   },
   { name: "Settings", href: "/admin/settings" },

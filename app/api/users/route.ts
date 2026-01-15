@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
-const API_URL = process.env.API_URL || 'http://localhost:85';
-const COOKIE_NAME = process.env.JWT_COOKIE_NAME || 'auth_token';
+const API_URL = process.env.AUTH_API_URL;
+const COOKIE_NAME = process.env.JWT_COOKIE_NAME || "auth_token";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { message: 'Not authenticated' },
+        { message: "Not authenticated" },
         { status: 401 }
       );
     }
@@ -19,9 +19,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     const response = await fetch(`${API_URL}/api/users`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(body),
@@ -31,19 +31,22 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { message: data.message || 'Failed to create user', errors: data.errors },
+        {
+          message: data.message || "Failed to create user",
+          errors: data.errors,
+        },
         { status: response.status }
       );
     }
 
     return NextResponse.json({
       user: data.user || data,
-      message: 'User created successfully',
+      message: "User created successfully",
     });
   } catch (error) {
-    console.error('Create user error:', error);
+    console.error("Create user error:", error);
     return NextResponse.json(
-      { message: 'An error occurred while creating user' },
+      { message: "An error occurred while creating user" },
       { status: 500 }
     );
   }
@@ -56,7 +59,7 @@ export async function GET() {
 
     if (!token) {
       return NextResponse.json(
-        { message: 'Not authenticated' },
+        { message: "Not authenticated" },
         { status: 401 }
       );
     }
@@ -71,16 +74,16 @@ export async function GET() {
 
     if (!response.ok) {
       return NextResponse.json(
-        { message: data.message || 'Failed to fetch users' },
+        { message: data.message || "Failed to fetch users" },
         { status: response.status }
       );
     }
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Get users error:', error);
+    console.error("Get users error:", error);
     return NextResponse.json(
-      { message: 'An error occurred while fetching users' },
+      { message: "An error occurred while fetching users" },
       { status: 500 }
     );
   }

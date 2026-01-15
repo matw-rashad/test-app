@@ -24,14 +24,14 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth(); 
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    try {    
+    try {
 
       await login({ email, password });
       const callbackUrl = searchParams.get("callbackUrl") || "/admin";
@@ -48,6 +48,10 @@ function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
+          <CardTitle
+            style={{ textAlign: "center", paddingBottom: "2px" }}
+            className="text-2xl font-bold">MATW Middleware
+          </CardTitle>
           <CardTitle className="text-2xl font-bold">Login</CardTitle>
           <CardDescription>
             Enter your email and password to access your account
