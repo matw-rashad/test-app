@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,15 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Plus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { AlertCircle, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -26,6 +35,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // DHL Status interfaces
 interface DHLStatus {
@@ -50,6 +69,13 @@ interface DHLStatusFormData {
 }
 
 // DHL Mail Template interfaces
+interface DHLMailTemplateLine {
+  id?: number;
+  language: string;
+  mailSubject: string;
+  mailBody: string;
+}
+
 interface DHLMailTemplate {
   id: number;
   trackingStatusCode: string;
@@ -58,12 +84,15 @@ interface DHLMailTemplate {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  templateLines?: DHLMailTemplateLine[];
 }
 
 interface DHLMailTemplateFormData {
   templateKey: string;
+  trackingStatusCode: string;
   description: string;
   isActive: boolean;
+  templateLines: DHLMailTemplateLine[];
 }
 
 const initialStatusFormData: DHLStatusFormData = {
@@ -76,13 +105,23 @@ const initialStatusFormData: DHLStatusFormData = {
   duration: 0,
 };
 
+const initialTemplateLine: DHLMailTemplateLine = {
+  language: "",
+  mailSubject: "",
+  mailBody: "",
+};
+
 const initialTemplateFormData: DHLMailTemplateFormData = {
   templateKey: "",
+  trackingStatusCode: "",
   description: "",
   isActive: true,
+  templateLines: [{ ...initialTemplateLine }],
 };
 
 export default function DHLMailConfiguration() {
+  const router = useRouter();
+
   // DHL Status state
   const [statuses, setStatuses] = useState<DHLStatus[]>([]);
   const [isLoadingStatuses, setIsLoadingStatuses] = useState(true);
@@ -102,6 +141,19 @@ export default function DHLMailConfiguration() {
   const [templateFormData, setTemplateFormData] = useState<DHLMailTemplateFormData>(initialTemplateFormData);
   const [templateFormError, setTemplateFormError] = useState("");
   const [editingTemplate, setEditingTemplate] = useState<DHLMailTemplate | null>(null);
+
+  // Status codes for dropdown
+  const [statusCodes, setStatusCodes] = useState<string[]>([]);
+  const [isLoadingStatusCodes, setIsLoadingStatusCodes] = useState(false);
+
+  // Loading state for edit dialog
+  const [isLoadingEditDialog, setIsLoadingEditDialog] = useState(false);
+
+  // Delete confirmation state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState<"status" | "template" | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<DHLStatus | DHLMailTemplate | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchStatuses();
@@ -231,6 +283,30 @@ export default function DHLMailConfiguration() {
     }
   };
 
+  // ==================== Status Codes Functions ====================
+  const fetchStatusCodes = async () => {
+    try {
+      setIsLoadingStatusCodes(true);
+      const response = await fetch("/api/dhlmail/statusCodes");
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Failed to fetch status codes:", data.message);
+        return;
+      }
+
+      // Handle both array of strings and array of objects
+      const codes = Array.isArray(data)
+        ? data.map((item: any) => (typeof item === "string" ? item : item.StatusCode || item.statusCode || item))
+        : [];
+      setStatusCodes(codes);
+    } catch (err) {
+      console.error("Failed to fetch status codes:", err);
+    } finally {
+      setIsLoadingStatusCodes(false);
+    }
+  };
+
   // ==================== DHL Mail Template Functions ====================
   const fetchTemplates = async () => {
     try {
@@ -261,22 +337,82 @@ export default function DHLMailConfiguration() {
     }
   };
 
-  const handleOpenCreateTemplate = () => {
-    setEditingTemplate(null);
-    setTemplateFormData(initialTemplateFormData);
-    setTemplateFormError("");
-    setIsTemplateDialogOpen(true);
+  const fetchTemplateWithLines = async (templateId: number): Promise<DHLMailTemplate | null> => {
+    try {
+      const response = await fetch(`/api/dhlmail/templates/${templateId}/full`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch template details");
+      }
+
+      const templateData = data.data || data;
+      return {
+        id: templateData.Id || templateData.id,
+        trackingStatusCode: templateData.TrackingStatusCode || templateData.trackingStatusCode,
+        templateKey: templateData.TemplateKey || templateData.templateKey,
+        description: templateData.Description || templateData.description,
+        isActive: templateData.IsActive ?? templateData.isActive ?? true,
+        createdAt: templateData.CreatedAt || templateData.createdAt,
+        updatedAt: templateData.UpdatedAt || templateData.updatedAt,
+        templateLines: (templateData.TemplateLines || templateData.templateLines || []).map((line: any) => ({
+          id: line.Id || line.id,
+          language: line.Language || line.language,
+          mailSubject: line.MailSubject || line.mailSubject,
+          mailBody: line.MailBody || line.mailBody,
+        })),
+      };
+    } catch (err) {
+      console.error("Failed to fetch template with lines:", err);
+      return null;
+    }
   };
 
-  const handleOpenEditTemplate = (template: DHLMailTemplate) => {
-    setEditingTemplate(template);
+  const handleOpenCreateTemplate = () => {
+    setEditingTemplate(null);
     setTemplateFormData({
-      templateKey: template.templateKey,
-      description: template.description || "",
-      isActive: template.isActive,
+      ...initialTemplateFormData,
+      templateLines: [{ ...initialTemplateLine }],
     });
     setTemplateFormError("");
     setIsTemplateDialogOpen(true);
+    fetchStatusCodes();
+  };
+
+  const handleOpenEditTemplate = async (template: DHLMailTemplate) => {
+    setTemplateFormError("");
+    setIsLoadingEditDialog(true);
+    setIsTemplateDialogOpen(true);
+
+    // Fetch template with lines and status codes in parallel
+    const [fullTemplate] = await Promise.all([
+      fetchTemplateWithLines(template.id),
+      fetchStatusCodes(),
+    ]);
+
+    if (fullTemplate) {
+      setEditingTemplate(fullTemplate);
+      setTemplateFormData({
+        trackingStatusCode: fullTemplate.trackingStatusCode,
+        templateKey: fullTemplate.templateKey,
+        description: fullTemplate.description || "",
+        isActive: fullTemplate.isActive,
+        templateLines: fullTemplate.templateLines && fullTemplate.templateLines.length > 0
+          ? fullTemplate.templateLines
+          : [{ ...initialTemplateLine }],
+      });
+    } else {
+      setEditingTemplate(template);
+      setTemplateFormData({
+        trackingStatusCode: template.trackingStatusCode,
+        templateKey: template.templateKey,
+        description: template.description || "",
+        isActive: template.isActive,
+        templateLines: [{ ...initialTemplateLine }],
+      });
+    }
+
+    setIsLoadingEditDialog(false);
   };
 
   const handleCloseTemplateDialog = () => {
@@ -284,12 +420,97 @@ export default function DHLMailConfiguration() {
     setEditingTemplate(null);
     setTemplateFormData(initialTemplateFormData);
     setTemplateFormError("");
+    setIsLoadingEditDialog(false);
+  };
+
+  // ==================== Delete Functions ====================
+  const handleOpenDeleteDialog = (type: "status" | "template", item: DHLStatus | DHLMailTemplate) => {
+    setDeleteType(type);
+    setItemToDelete(item);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setDeleteType(null);
+    setItemToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete || !deleteType) return;
+
+    setIsDeleting(true);
+
+    try {
+      const url = deleteType === "status"
+        ? `/api/dhlmail/DeleteDhlStatus/${itemToDelete.id}`
+        : `/api/dhlmail/templates/${itemToDelete.id}`;
+
+      const response = await fetch(url, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to delete ${deleteType}`);
+      }
+
+      handleCloseDeleteDialog();
+
+      // Refresh the appropriate list
+      if (deleteType === "status") {
+        await fetchStatuses();
+      } else {
+        await fetchTemplates();
+      }
+    } catch (err) {
+      // Show error in the appropriate section
+      if (deleteType === "status") {
+        setStatusError(err instanceof Error ? err.message : "Failed to delete status");
+      } else {
+        setTemplateError(err instanceof Error ? err.message : "Failed to delete template");
+      }
+      handleCloseDeleteDialog();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleAddTemplateLine = () => {
+    setTemplateFormData({
+      ...templateFormData,
+      templateLines: [...templateFormData.templateLines, { ...initialTemplateLine }],
+    });
+  };
+
+  const handleRemoveTemplateLine = (index: number) => {
+    if (templateFormData.templateLines.length > 1) {
+      const newLines = templateFormData.templateLines.filter((_, i) => i !== index);
+      setTemplateFormData({
+        ...templateFormData,
+        templateLines: newLines,
+      });
+    }
+  };
+
+  const handleTemplateLineChange = (index: number, field: keyof DHLMailTemplateLine, value: string) => {
+    const newLines = [...templateFormData.templateLines];
+    newLines[index] = { ...newLines[index], [field]: value };
+    setTemplateFormData({
+      ...templateFormData,
+      templateLines: newLines,
+    });
   };
 
   const handleSubmitTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     setTemplateFormError("");
 
+    if (!editingTemplate && !templateFormData.trackingStatusCode.trim()) {
+      setTemplateFormError("Tracking Status Code is required");
+      return;
+    }
     if (!templateFormData.templateKey.trim()) {
       setTemplateFormError("Template Key is required");
       return;
@@ -303,29 +524,132 @@ export default function DHLMailConfiguration() {
       return;
     }
 
+    // Validate template lines
+    for (let i = 0; i < templateFormData.templateLines.length; i++) {
+      const line = templateFormData.templateLines[i];
+      if (!line.language.trim()) {
+        setTemplateFormError(`Language is required for line ${i + 1}`);
+        return;
+      }
+      if (line.language.length > 10) {
+        setTemplateFormError(`Language must be 10 characters or less for line ${i + 1}`);
+        return;
+      }
+      if (!line.mailSubject.trim()) {
+        setTemplateFormError(`Mail Subject is required for line ${i + 1}`);
+        return;
+      }
+      if (!line.mailBody.trim()) {
+        setTemplateFormError(`Mail Body is required for line ${i + 1}`);
+        return;
+      }
+    }
+
+    // Check for duplicate languages
+    const languages = templateFormData.templateLines.map(l => l.language.toLowerCase());
+    const uniqueLanguages = new Set(languages);
+    if (languages.length !== uniqueLanguages.size) {
+      setTemplateFormError("Each language can only be used once per template");
+      return;
+    }
+
     setIsSubmittingTemplate(true);
 
     try {
-      const url = editingTemplate
-        ? `/api/dhlmail/templates/${editingTemplate.id}`
-        : "/api/dhlmail/templates";
+      if (editingTemplate) {
+        // Update existing template
+        // Step 1: Update template basic info
+        const templateResponse = await fetch(`/api/dhlmail/templates/${editingTemplate.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templateKey: editingTemplate.templateKey,
+            trackingStatusCode: editingTemplate.trackingStatusCode,
+            description: templateFormData.description || null,
+            isActive: templateFormData.isActive,
+          }),
+        });
 
-      const method = editingTemplate ? "PUT" : "POST";
+        const templateData = await templateResponse.json();
 
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateKey: templateFormData.templateKey,
-          description: templateFormData.description || null,
-          isActive: templateFormData.isActive,
-        }),
-      });
+        if (!templateResponse.ok) {
+          throw new Error(templateData.message || "Failed to update template");
+        }
 
-      const data = await response.json();
+        // Step 2: Handle template lines
+        const existingLines = editingTemplate.templateLines || [];
+        const newLines = templateFormData.templateLines;
 
-      if (!response.ok) {
-        throw new Error(data.message || `Failed to ${editingTemplate ? "update" : "create"} template`);
+        // Find lines to delete (exist in old but not in new)
+        const linesToDelete = existingLines.filter(
+          (existingLine) => !newLines.some((newLine) => newLine.language.toUpperCase() === existingLine.language.toUpperCase())
+        );
+
+        // Find lines to update (exist in both)
+        const linesToUpdate = newLines.filter((newLine) =>
+          existingLines.some((existingLine) => existingLine.language.toUpperCase() === newLine.language.toUpperCase())
+        );
+
+        // Find lines to create (exist in new but not in old)
+        const linesToCreate = newLines.filter(
+          (newLine) => !existingLines.some((existingLine) => existingLine.language.toUpperCase() === newLine.language.toUpperCase())
+        );
+
+        // Delete removed lines
+        for (const line of linesToDelete) {
+          await fetch(`/api/dhlmail/templates/${editingTemplate.id}/lines/${line.language}`, {
+            method: "DELETE",
+          });
+        }
+
+        // Update existing lines
+        for (const line of linesToUpdate) {
+          await fetch(`/api/dhlmail/templates/${editingTemplate.id}/lines/${line.language}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              language: line.language,
+              mailSubject: line.mailSubject,
+              mailBody: line.mailBody,
+            }),
+          });
+        }
+
+        // Create new lines
+        for (const line of linesToCreate) {
+          await fetch(`/api/dhlmail/templates/${editingTemplate.id}/lines`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              language: line.language,
+              mailSubject: line.mailSubject,
+              mailBody: line.mailBody,
+            }),
+          });
+        }
+      } else {
+        // Create new template with lines
+        const response = await fetch("/api/dhlmail/templates/with-lines", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            trackingStatusCode: templateFormData.trackingStatusCode,
+            templateKey: templateFormData.templateKey,
+            description: templateFormData.description || null,
+            isActive: templateFormData.isActive,
+            templateLines: templateFormData.templateLines.map(line => ({
+              language: line.language,
+              mailSubject: line.mailSubject,
+              mailBody: line.mailBody,
+            })),
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to create template");
+        }
       }
 
       handleCloseTemplateDialog();
@@ -413,13 +737,23 @@ export default function DHLMailConfiguration() {
                         {status.description || "-"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenEditStatus(status)}
-                        >
-                          Edit
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenEditStatus(status)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenDeleteDialog("status", status)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -439,7 +773,7 @@ export default function DHLMailConfiguration() {
                   Manage DHL mail template configurations
                 </CardDescription>
               </div>
-              <Button onClick={handleOpenCreateTemplate} size="sm">
+              <Button onClick={() => router.push("/admin/middleware-services/dhl-mail/templates/new")} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Create New
               </Button>
@@ -497,13 +831,23 @@ export default function DHLMailConfiguration() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenEditTemplate(template)}
-                        >
-                          Edit
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/admin/middleware-services/dhl-mail/templates/${template.id}/edit`)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenDeleteDialog("template", template)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -651,89 +995,56 @@ export default function DHLMailConfiguration() {
         </DialogContent>
       </Dialog>
 
-      {/* Create/Edit DHL Mail Template Dialog */}
-      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingTemplate ? "Edit DHL Mail Template" : "Create New DHL Mail Template"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingTemplate
-                ? "Update the DHL mail template configuration."
-                : "Add a new DHL mail template configuration."}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmitTemplate}>
-            <div className="grid gap-4 py-4">
-              {templateFormError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{templateFormError}</AlertDescription>
-                </Alert>
+      {/*
+        Template Dialog has been replaced with dedicated pages:
+        - Create: /admin/middleware-services/dhl-mail/templates/new
+        - Edit: /admin/middleware-services/dhl-mail/templates/[id]/edit
+      */}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteType === "status" ? (
+                <>
+                  This will permanently delete the DHL status{" "}
+                  <span className="font-semibold">
+                    &quot;{(itemToDelete as DHLStatus)?.service} - {(itemToDelete as DHLStatus)?.status}&quot;
+                  </span>
+                  . This action cannot be undone.
+                </>
+              ) : (
+                <>
+                  This will permanently delete the mail template{" "}
+                  <span className="font-semibold">
+                    &quot;{(itemToDelete as DHLMailTemplate)?.templateKey}&quot;
+                  </span>{" "}
+                  and all its associated template lines. This action cannot be undone.
+                </>
               )}
-
-              <div className="space-y-2">
-                <Label htmlFor="templateKey">
-                  Template Key <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="templateKey"
-                  value={templateFormData.templateKey}
-                  onChange={(e) => setTemplateFormData({ ...templateFormData, templateKey: e.target.value })}
-                  maxLength={100}
-                  placeholder="Enter template key"
-                  disabled={isSubmittingTemplate || !!editingTemplate}
-                />
-                <p className="text-xs text-gray-500">{templateFormData.templateKey.length}/100</p>
-                {editingTemplate && (
-                  <p className="text-xs text-amber-600">Template key cannot be changed after creation</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="templateDescription">Description</Label>
-                <Input
-                  id="templateDescription"
-                  value={templateFormData.description}
-                  onChange={(e) => setTemplateFormData({ ...templateFormData, description: e.target.value })}
-                  maxLength={250}
-                  placeholder="Enter description"
-                  disabled={isSubmittingTemplate}
-                />
-                <p className="text-xs text-gray-500">{templateFormData.description.length}/250</p>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="isActive">Active</Label>
-                  <p className="text-xs text-gray-500">Enable or disable this template</p>
-                </div>
-                <Switch
-                  id="isActive"
-                  checked={templateFormData.isActive}
-                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, isActive: checked })}
-                  disabled={isSubmittingTemplate}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseTemplateDialog} disabled={isSubmittingTemplate}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmittingTemplate}>
-                {isSubmittingTemplate
-                  ? editingTemplate
-                    ? "Updating..."
-                    : "Creating..."
-                  : editingTemplate
-                    ? "Update Template"
-                    : "Create Template"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

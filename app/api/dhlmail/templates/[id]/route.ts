@@ -125,9 +125,15 @@ export async function DELETE(
       },
     });
 
-    const data = await response.json();
+    if (response.status === 204) {
+      return NextResponse.json({
+        success: true,
+        message: "DHL mail template deleted successfully",
+      });
+    }
 
     if (!response.ok) {
+      const data = await response.json();
       return NextResponse.json(
         { message: data.message || "Failed to delete DHL mail template" },
         { status: response.status }
@@ -135,6 +141,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({
+      success: true,
       message: "DHL mail template deleted successfully",
     });
   } catch (error) {
