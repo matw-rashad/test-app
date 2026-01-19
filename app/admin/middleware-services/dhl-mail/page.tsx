@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -146,6 +145,10 @@ export default function DHLMailConfiguration() {
   const [statusCodes, setStatusCodes] = useState<string[]>([]);
   const [isLoadingStatusCodes, setIsLoadingStatusCodes] = useState(false);
 
+  // Services for dropdown
+  const [services, setServices] = useState<string[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+
   // Loading state for edit dialog
   const [isLoadingEditDialog, setIsLoadingEditDialog] = useState(false);
 
@@ -191,11 +194,39 @@ export default function DHLMailConfiguration() {
     }
   };
 
+  const fetchServices = async () => {
+    try {
+      setIsLoadingServices(true);
+      const response = await fetch("/api/dhlmail/services");
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Failed to fetch services:", data.message);
+        return;
+      }
+      console.log("Fetched services:", data);
+
+      // Handle both array of strings and array of objects
+      const servicesList = Array.isArray(data)
+        ? data
+            .map((item: any) => (typeof item === "string" ? item : item.serviceName || item.servicename || ""))
+            .filter((s: string) => s && s.trim())
+        : [];
+      setServices(servicesList);
+    } catch (err) {
+      console.error("Failed to fetch services:", err);
+    } finally {
+      setIsLoadingServices(false);
+    }
+  };
+
   const handleOpenCreateStatus = () => {
     setEditingStatus(null);
     setStatusFormData(initialStatusFormData);
     setStatusFormError("");
     setIsStatusDialogOpen(true);
+    fetchServices();
+    fetchStatusCodes();
   };
 
   const handleOpenEditStatus = (status: DHLStatus) => {
@@ -211,6 +242,8 @@ export default function DHLMailConfiguration() {
     });
     setStatusFormError("");
     setIsStatusDialogOpen(true);
+    fetchServices();
+    fetchStatusCodes();
   };
 
   const handleCloseStatusDialog = () => {
@@ -230,10 +263,6 @@ export default function DHLMailConfiguration() {
     }
     if (!statusFormData.status.trim()) {
       setStatusFormError("Status is required");
-      return;
-    }
-    if (statusFormData.service.length > 20) {
-      setStatusFormError("Service must be 20 characters or less");
       return;
     }
     if (statusFormData.status.length > 20) {
@@ -722,6 +751,7 @@ export default function DHLMailConfiguration() {
                     <TableHead>Service</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Description</TableHead>
+                    <TableHead>Mail Send</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -735,6 +765,12 @@ export default function DHLMailConfiguration() {
                       </TableCell>
                       <TableCell className="text-gray-600 max-w-[300px] truncate">
                         {status.description || "-"}
+                      </TableCell>
+                       <TableCell className="text-gray-600 max-w-[300px] truncate">
+                      
+                        <Badge variant={status.sendMail ? "default" : "secondary"}>
+                          {status.sendMail ? "Active" : "Inactive"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -885,15 +921,22 @@ export default function DHLMailConfiguration() {
                   <Label htmlFor="service">
                     Service <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="service"
-                    value={statusFormData.service}
-                    onChange={(e) => setStatusFormData({ ...statusFormData, service: e.target.value })}
-                    maxLength={20}
-                    placeholder="Enter service name"
-                    disabled={isSubmittingStatus}
-                  />
-                  <p className="text-xs text-gray-500">{statusFormData.service.length}/20</p>
+                  <Select
+                    value={statusFormData.service || undefined}
+                    onValueChange={(value) => setStatusFormData({ ...statusFormData, service: value })}
+                    disabled={isSubmittingStatus || isLoadingServices}
+                  >
+                    <SelectTrigger id="service">
+                      <SelectValue placeholder={isLoadingServices ? "Loading..." : "Select service"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {services.map((service) => (
+                        <SelectItem key={service} value={service}>
+                          {service}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status">
@@ -913,13 +956,25 @@ export default function DHLMailConfiguration() {
 
               <div className="space-y-2">
                 <Label htmlFor="statusCode">Status Code</Label>
-                <Input
-                  id="statusCode"
-                  value={statusFormData.statusCode}
-                  onChange={(e) => setStatusFormData({ ...statusFormData, statusCode: e.target.value })}
-                  placeholder="Enter status code"
-                  disabled={isSubmittingStatus}
-                />
+                <Select
+                  value={statusFormData.statusCode || undefined}
+                  onValueChange={(value) => setStatusFormData({ ...statusFormData, statusCode: value === "none" ? "" : value })}
+                  disabled={isSubmittingStatus || isLoadingStatusCodes}
+                >
+                  <SelectTrigger id="statusCode">
+                    <SelectValue placeholder={isLoadingStatusCodes ? "Loading..." : "Select status code"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none" className="text-muted-foreground">
+                      None
+                    </SelectItem>
+                    {statusCodes.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

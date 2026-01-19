@@ -38,15 +38,15 @@ const navItems: NavItem[] = [
       { name: "Create User", href: "/admin/users/new" },
     ]
   },
-  {
-    name: "Products",
-    children: [
-      { name: "Product List", href: "/admin/products" },
-      { name: "Add Product", href: "/admin/products/add" },
-      { name: "Categories", href: "/admin/products/categories" },
-      { name: "Inventory", href: "/admin/products/inventory" },
-    ]
-  },
+  // {
+  //   name: "Products",
+  //   children: [
+  //     { name: "Product List", href: "/admin/products" },
+  //     { name: "Add Product", href: "/admin/products/add" },
+  //     { name: "Categories", href: "/admin/products/categories" },
+  //     { name: "Inventory", href: "/admin/products/inventory" },
+  //   ]
+  // },
   {
     name: "Configuration",
     children: [

@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import {
@@ -39,6 +40,7 @@ export function RichTextEditor({
   id,
 }: RichTextEditorProps) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -52,6 +54,9 @@ export function RichTextEditor({
           rel: "noopener noreferrer",
           target: "_blank",
         },
+      }),
+      Placeholder.configure({
+        placeholder,
       }),
     ],
     content: value,
@@ -247,17 +252,6 @@ export function RichTextEditor({
 
       {/* Editor Content */}
       <EditorContent editor={editor} />
-
-      {/* Placeholder styling is handled via CSS */}
-      <style jsx global>{`
-        .rich-text-editor-content.ProseMirror p.is-editor-empty:first-child::before {
-          content: "${placeholder}";
-          color: hsl(var(--muted-foreground));
-          float: left;
-          height: 0;
-          pointer-events: none;
-        }
-      `}</style>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Select,
   SelectContent,
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertCircle, ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
+import VariableView from "@/components/views/variable-view";
 
 interface DHLMailTemplateLine {
   id?: number;
@@ -50,6 +51,17 @@ const initialTemplateLine: DHLMailTemplateLine = {
   mailSubject: "",
   mailBody: "",
 };
+
+const stripHtml = (html: string): string => {
+  if (!html) {
+    return "";
+  }
+
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "";
+};
+
+const isHtmlEmpty = (html: string): boolean => !stripHtml(html).trim();
 
 export default function EditTemplatePage() {
   const router = useRouter();
@@ -88,10 +100,10 @@ export default function EditTemplatePage() {
         createdAt: templateData.CreatedAt || templateData.createdAt,
         updatedAt: templateData.UpdatedAt || templateData.updatedAt,
         templateLines: (templateData.TemplateLines || templateData.templateLines || []).map((line: any) => ({
-          id: line.Id || line.id,
-          language: line.Language || line.language,
-          mailSubject: line.MailSubject || line.mailSubject,
-          mailBody: line.MailBody || line.mailBody,
+          id: line.Id ?? line.id,
+          language: line.Language ?? line.language ?? "",
+          mailSubject: line.MailSubject ?? line.mailSubject ?? "",
+          mailBody: line.MailBody ?? line.mailBody ?? "",
         })),
       };
 
@@ -195,7 +207,7 @@ export default function EditTemplatePage() {
         setFormError(`Mail Subject is required for line ${i + 1}`);
         return;
       }
-      if (!line.mailBody.trim()) {
+      if (isHtmlEmpty(line.mailBody)) {
         setFormError(`Mail Body is required for line ${i + 1}`);
         return;
       }
@@ -496,6 +508,8 @@ export default function EditTemplatePage() {
                       <p className="text-xs text-gray-500">{line.language.length}/10</p>
                     </div>
 
+                    <VariableView />
+
                     <div className="space-y-2">
                       <Label htmlFor={`mailSubject-${index}`}>
                         Mail Subject <span className="text-red-500">*</span>
@@ -513,14 +527,12 @@ export default function EditTemplatePage() {
                       <Label htmlFor={`mailBody-${index}`}>
                         Mail Body <span className="text-red-500">*</span>
                       </Label>
-                      <Textarea
+                      <RichTextEditor
                         id={`mailBody-${index}`}
                         value={line.mailBody}
-                        onChange={(e) => handleTemplateLineChange(index, "mailBody", e.target.value)}
-                        placeholder="Enter email body content (HTML supported)"
+                        onChange={(value) => handleTemplateLineChange(index, "mailBody", value)}
+                        placeholder="Enter email body content"
                         disabled={isSubmitting}
-                        rows={6}
-                        className="font-mono text-sm"
                       />
                     </div>
                   </div>

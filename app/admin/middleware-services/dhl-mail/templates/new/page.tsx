@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertCircle, ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
+import VariableView from "@/components/views/variable-view";
 
 interface DHLMailTemplateLine {
   id?: number;
@@ -46,6 +47,17 @@ const initialFormData: DHLMailTemplateFormData = {
   isActive: true,
   templateLines: [{ ...initialTemplateLine }],
 };
+
+const stripHtml = (html: string): string => {
+  if (!html) {
+    return "";
+  }
+
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "";
+};
+
+const isHtmlEmpty = (html: string): boolean => !stripHtml(html).trim();
 
 export default function NewTemplatePage() {
   const router = useRouter();
@@ -144,7 +156,7 @@ export default function NewTemplatePage() {
         setFormError(`Mail Subject is required for line ${i + 1}`);
         return;
       }
-      if (!line.mailBody.trim()) {
+      if (isHtmlEmpty(line.mailBody)) {
         setFormError(`Mail Body is required for line ${i + 1}`);
         return;
       }
@@ -347,6 +359,8 @@ export default function NewTemplatePage() {
                       <p className="text-xs text-gray-500">{line.language.length}/10</p>
                     </div>
 
+                      <VariableView />
+
                     <div className="space-y-2">
                       <Label htmlFor={`mailSubject-${index}`}>
                         Mail Subject <span className="text-red-500">*</span>
@@ -364,6 +378,7 @@ export default function NewTemplatePage() {
                       <Label htmlFor={`mailBody-${index}`}>
                         Mail Body <span className="text-red-500">*</span>
                       </Label>
+
                       <RichTextEditor
                         id={`mailBody-${index}`}
                         value={line.mailBody}
