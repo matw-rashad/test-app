@@ -205,6 +205,7 @@ export default function ServiceListPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[60px]">#</TableHead>
                     <TableHead>Service Name</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Cron Expression</TableHead>
@@ -213,8 +214,9 @@ export default function ServiceListPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {currentRecords.map((service) => (
+                  {currentRecords.map((service, index) => (
                     <TableRow key={service.jobName}>
+                      <TableCell className="text-gray-500">{startIndex + index + 1}</TableCell>
                       <TableCell className="font-medium">{service.jobName}</TableCell>
                       <TableCell>
                         <Badge

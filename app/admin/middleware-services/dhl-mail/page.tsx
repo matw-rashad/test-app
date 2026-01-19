@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Loader2, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, Loader2, Plus, Trash2, Search } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -131,6 +131,16 @@ export default function DHLMailConfiguration() {
   const [statusFormError, setStatusFormError] = useState("");
   const [editingStatus, setEditingStatus] = useState<DHLStatus | null>(null);
 
+  // DHL Status search and pagination
+  const [statusSearchQuery, setStatusSearchQuery] = useState("");
+  const [statusCurrentPage, setStatusCurrentPage] = useState(1);
+  const statusPageSize = 10;
+
+  // DHL Mail Template search and pagination
+  const [templateSearchQuery, setTemplateSearchQuery] = useState("");
+  const [templateCurrentPage, setTemplateCurrentPage] = useState(1);
+  const templatePageSize = 10;
+
   // DHL Mail Template state
   const [templates, setTemplates] = useState<DHLMailTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
@@ -157,6 +167,51 @@ export default function DHLMailConfiguration() {
   const [deleteType, setDeleteType] = useState<"status" | "template" | null>(null);
   const [itemToDelete, setItemToDelete] = useState<DHLStatus | DHLMailTemplate | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Filtered and paginated statuses
+  const filteredStatuses = statuses.filter((status) => {
+    if (!statusSearchQuery.trim()) return true;
+    const query = statusSearchQuery.toLowerCase();
+    return (
+      status.service.toLowerCase().includes(query) ||
+      status.status.toLowerCase().includes(query) ||
+      (status.statusCode?.toLowerCase().includes(query) ?? false) ||
+      (status.description?.toLowerCase().includes(query) ?? false)
+    );
+  });
+
+  const totalStatusPages = Math.ceil(filteredStatuses.length / statusPageSize);
+  const paginatedStatuses = filteredStatuses.slice(
+    (statusCurrentPage - 1) * statusPageSize,
+    statusCurrentPage * statusPageSize
+  );
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    setStatusCurrentPage(1);
+  }, [statusSearchQuery]);
+
+  // Filtered and paginated templates
+  const filteredTemplates = templates.filter((template) => {
+    if (!templateSearchQuery.trim()) return true;
+    const query = templateSearchQuery.toLowerCase();
+    return (
+      template.trackingStatusCode.toLowerCase().includes(query) ||
+      template.templateKey.toLowerCase().includes(query) ||
+      (template.description?.toLowerCase().includes(query) ?? false)
+    );
+  });
+
+  const totalTemplatePages = Math.ceil(filteredTemplates.length / templatePageSize);
+  const paginatedTemplates = filteredTemplates.slice(
+    (templateCurrentPage - 1) * templatePageSize,
+    templateCurrentPage * templatePageSize
+  );
+
+  // Reset to page 1 when template search query changes
+  useEffect(() => {
+    setTemplateCurrentPage(1);
+  }, [templateSearchQuery]);
 
   useEffect(() => {
     fetchStatuses();
@@ -726,6 +781,19 @@ export default function DHLMailConfiguration() {
               </Alert>
             )}
 
+            {/* Search Input */}
+            {!isLoadingStatuses && statuses.length > 0 && (
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by service, status, code, or description..."
+                  value={statusSearchQuery}
+                  onChange={(e) => setStatusSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            )}
+
             {isLoadingStatuses ? (
               <div className="space-y-4">
                 {[...Array(5)].map((_, i) => (
@@ -743,7 +811,13 @@ export default function DHLMailConfiguration() {
                 <p>No DHL statuses configured yet.</p>
                 <p className="text-sm">Click &quot;Create New&quot; to add your first status.</p>
               </div>
+            ) : filteredStatuses.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No statuses found matching &quot;{statusSearchQuery}&quot;</p>
+                <p className="text-sm">Try a different search term.</p>
+              </div>
             ) : (
+              <>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -756,7 +830,7 @@ export default function DHLMailConfiguration() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {statuses.map((status) => (
+                  {paginatedStatuses.map((status) => (
                     <TableRow key={status.id}>
                       <TableCell className="font-medium">{status.id}</TableCell>
                       <TableCell>{status.service}</TableCell>
@@ -795,6 +869,66 @@ export default function DHLMailConfiguration() {
                   ))}
                 </TableBody>
               </Table>
+
+              {/* Pagination Controls */}
+              {totalStatusPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <p className="text-sm text-gray-500">
+                    Showing {((statusCurrentPage - 1) * statusPageSize) + 1} to{" "}
+                    {Math.min(statusCurrentPage * statusPageSize, filteredStatuses.length)} of{" "}
+                    {filteredStatuses.length} results
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStatusCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={statusCurrentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalStatusPages }, (_, i) => i + 1)
+                        .filter((page) => {
+                          // Show first, last, current, and pages around current
+                          return (
+                            page === 1 ||
+                            page === totalStatusPages ||
+                            Math.abs(page - statusCurrentPage) <= 1
+                          );
+                        })
+                        .map((page, index, arr) => {
+                          // Add ellipsis if there's a gap
+                          const showEllipsisBefore = index > 0 && arr[index - 1] !== page - 1;
+                          return (
+                            <span key={page} className="flex items-center">
+                              {showEllipsisBefore && (
+                                <span className="px-2 text-gray-400">...</span>
+                              )}
+                              <Button
+                                variant={statusCurrentPage === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setStatusCurrentPage(page)}
+                                className="min-w-[36px]"
+                              >
+                                {page}
+                              </Button>
+                            </span>
+                          );
+                        })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStatusCurrentPage((prev) => Math.min(prev + 1, totalStatusPages))}
+                      disabled={statusCurrentPage === totalStatusPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -823,6 +957,19 @@ export default function DHLMailConfiguration() {
               </Alert>
             )}
 
+            {/* Search Input */}
+            {!isLoadingTemplates && templates.length > 0 && (
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by tracking code, template key, or description..."
+                  value={templateSearchQuery}
+                  onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            )}
+
             {isLoadingTemplates ? (
               <div className="space-y-4">
                 {[...Array(5)].map((_, i) => (
@@ -840,7 +987,13 @@ export default function DHLMailConfiguration() {
                 <p>No DHL mail templates configured yet.</p>
                 <p className="text-sm">Click &quot;Create New&quot; to add your first template.</p>
               </div>
+            ) : filteredTemplates.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No templates found matching &quot;{templateSearchQuery}&quot;</p>
+                <p className="text-sm">Try a different search term.</p>
+              </div>
             ) : (
+              <>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -853,7 +1006,7 @@ export default function DHLMailConfiguration() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {templates.map((template) => (
+                  {paginatedTemplates.map((template) => (
                     <TableRow key={template.id}>
                       <TableCell className="font-medium">{template.id}</TableCell>
                       <TableCell className="font-medium">{template.trackingStatusCode}</TableCell>
@@ -889,6 +1042,66 @@ export default function DHLMailConfiguration() {
                   ))}
                 </TableBody>
               </Table>
+
+              {/* Pagination Controls */}
+              {totalTemplatePages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <p className="text-sm text-gray-500">
+                    Showing {((templateCurrentPage - 1) * templatePageSize) + 1} to{" "}
+                    {Math.min(templateCurrentPage * templatePageSize, filteredTemplates.length)} of{" "}
+                    {filteredTemplates.length} results
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTemplateCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={templateCurrentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalTemplatePages }, (_, i) => i + 1)
+                        .filter((page) => {
+                          // Show first, last, current, and pages around current
+                          return (
+                            page === 1 ||
+                            page === totalTemplatePages ||
+                            Math.abs(page - templateCurrentPage) <= 1
+                          );
+                        })
+                        .map((page, index, arr) => {
+                          // Add ellipsis if there's a gap
+                          const showEllipsisBefore = index > 0 && arr[index - 1] !== page - 1;
+                          return (
+                            <span key={page} className="flex items-center">
+                              {showEllipsisBefore && (
+                                <span className="px-2 text-gray-400">...</span>
+                              )}
+                              <Button
+                                variant={templateCurrentPage === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setTemplateCurrentPage(page)}
+                                className="min-w-[36px]"
+                              >
+                                {page}
+                              </Button>
+                            </span>
+                          );
+                        })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTemplateCurrentPage((prev) => Math.min(prev + 1, totalTemplatePages))}
+                      disabled={templateCurrentPage === totalTemplatePages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+              </>
             )}
           </CardContent>
         </Card>

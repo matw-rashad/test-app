@@ -10,10 +10,13 @@ export default function VariableView() {
                 Use variables ,if needed, to personalize the email content:
             </p>
             <p className="text-xs text-gray-800">
-                - Customer name: <code className="rounded bg-muted px-1 py-0.5">{"{{customer}}"}</code>.
+                - Customer name: <code className="rounded bg-muted px-1 py-0.5">{"{{CustomerName}}"}</code>.
             </p>
             <p className="text-xs text-gray-800">
-                - Shipment number: <code className="rounded bg-muted px-1 py-0.5">{"{{shipmentnumber}}"}</code>.
+                - Shipment number: <code className="rounded bg-muted px-1 py-0.5">{"{{TrackingNumber}}"}</code>.
+            </p>
+              <p className="text-xs text-gray-800">
+                - Order number: <code className="rounded bg-muted px-1 py-0.5">{"{{OrderNumber}}"}</code>.
             </p>
         </div>
     );
