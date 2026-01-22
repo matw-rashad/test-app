@@ -1,14 +1,17 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Play, Pause, Info } from "lucide-react";
+import { ArrowLeft, Save, Play, Pause, Info, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -18,31 +21,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-type Service = {
-  id: number;
-  serviceName: string;
-  status: "Active" | "Deactive";
-  runningPeriod: string;
-  description?: string;
-};
+interface CronJob {
+  jobName: string;
+  cron: string;
+  nightCron: string | null;
+  status: boolean;
+}
 
-const dummyServices: Record<number, Service> = {
-  1: { id: 1, serviceName: "DHL Mail Processor", status: "Active", runningPeriod: "0 0/5 * * * ?", description: "Processes incoming DHL mail notifications and updates shipment status" },
-  2: { id: 2, serviceName: "Order Sync Service", status: "Active", runningPeriod: "0 0 * * * ?", description: "Synchronizes orders with external systems" },
-  3: { id: 3, serviceName: "Inventory Update", status: "Active", runningPeriod: "0 0/15 * * * ?", description: "Updates inventory levels from warehouse systems" },
-  4: { id: 4, serviceName: "Payment Gateway Sync", status: "Active", runningPeriod: "0 0/10 * * * ?", description: "Syncs payment status with payment gateways" },
-  5: { id: 5, serviceName: "Email Notification Service", status: "Deactive", runningPeriod: "0 0/30 * * * ?", description: "Sends scheduled email notifications to customers" },
-  6: { id: 6, serviceName: "Customer Data Sync", status: "Active", runningPeriod: "0 0 0/2 * * ?", description: "Synchronizes customer data with CRM systems" },
-  7: { id: 7, serviceName: "Report Generator", status: "Active", runningPeriod: "0 0 6 * * ?", description: "Generates daily reports at 6 AM" },
-  8: { id: 8, serviceName: "Cache Cleanup", status: "Active", runningPeriod: "0 0 0 * * ?", description: "Cleans up expired cache entries daily at midnight" },
-  9: { id: 9, serviceName: "Backup Service", status: "Active", runningPeriod: "0 0 2 * * ?", description: "Performs database backups at 2 AM daily" },
-  10: { id: 10, serviceName: "Log Archiver", status: "Deactive", runningPeriod: "0 0 3 * * ?", description: "Archives old log files at 3 AM" },
-  11: { id: 11, serviceName: "API Rate Limiter", status: "Active", runningPeriod: "0 0/1 * * * ?", description: "Monitors and enforces API rate limits" },
-  12: { id: 12, serviceName: "Session Cleanup", status: "Active", runningPeriod: "0 0/30 * * * ?", description: "Removes expired user sessions" },
-  13: { id: 13, serviceName: "Webhook Dispatcher", status: "Deactive", runningPeriod: "0 0/5 * * * ?", description: "Dispatches pending webhook notifications" },
-  14: { id: 14, serviceName: "Analytics Aggregator", status: "Active", runningPeriod: "0 0 * * * ?", description: "Aggregates analytics data hourly" },
-  15: { id: 15, serviceName: "Health Check Monitor", status: "Active", runningPeriod: "0 0/2 * * * ?", description: "Monitors system health every 2 minutes" },
-};
+interface FormState {
+  cron: string;
+  nightCron: string;
+  enabled: boolean;
+}
 
 const quartzExamples = [
   { expression: "0 0 12 * * ?", description: "Fire at 12:00 PM (noon) every day" },
@@ -81,13 +71,178 @@ const specialCharacters = [
 export default function ServiceConfigurePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const resolvedParams = use(params);
-  const serviceId = parseInt(resolvedParams.id);
-  const service = dummyServices[serviceId];
+  const jobName = decodeURIComponent(resolvedParams.id);
+
+  const [service, setService] = useState<CronJob | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [formState, setFormState] = useState<FormState>({
+    cron: "",
+    nightCron: "",
+    enabled: false,
+  });
+
+  useEffect(() => {
+    const fetchService = async () => {
+      try {
+        setIsLoading(true);
+        setError("");
+        const response = await fetch(`/api/configuration/cronjobs/${encodeURIComponent(jobName)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch service");
+        }
+
+        // Normalize the data
+        const normalizedService: CronJob = {
+          jobName: data.JobName || data.jobName || "",
+          cron: data.Cron || data.cron || "",
+          nightCron: data.NightCron || data.nightCron || null,
+          status: data.Status ?? data.status ?? false,
+        };
+
+        setService(normalizedService);
+        setFormState({
+          cron: normalizedService.cron,
+          nightCron: normalizedService.nightCron || "",
+          enabled: normalizedService.status,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch service");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchService();
+  }, [jobName]);
+
+  const handleSave = async () => {
+    if (!formState.cron.trim()) {
+      toast.error("Cron expression is required");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const response = await fetch(`/api/configuration/cronjobs/${encodeURIComponent(jobName)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cron: formState.cron,
+          nightCron: formState.nightCron || null,
+          enabled: formState.enabled,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update service");
+      }
+
+      // Update local state to reflect changes
+      setService((prev) =>
+        prev
+          ? {
+              ...prev,
+              cron: formState.cron,
+              nightCron: formState.nightCron || null,
+              status: formState.enabled,
+            }
+          : null
+      );
+
+      toast.success("Service configuration saved successfully");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save configuration");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/admin/configuration/services")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48 mt-2" />
+          </div>
+        </div>
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="p-4 md:p-6">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-4 w-64 mt-2" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, j) => (
+                    <Skeleton key={j} className="h-10 w-full" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/admin/configuration/services")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Service Configuration</h1>
+          </div>
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   if (!service) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Service not found</p>
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/admin/configuration/services")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Service Not Found</h1>
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">The requested service could not be found.</p>
+        </div>
       </div>
     );
   }
@@ -105,7 +260,7 @@ export default function ServiceConfigurePage({ params }: { params: Promise<{ id:
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{service.serviceName}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{service.jobName}</h1>
             <p className="text-sm md:text-base text-gray-500 mt-1">
               Configure service settings and schedule
             </p>
@@ -114,12 +269,12 @@ export default function ServiceConfigurePage({ params }: { params: Promise<{ id:
         <Badge
           variant="outline"
           className={
-            service.status === "Active"
+            formState.enabled
               ? "bg-green-50 text-green-700 border-green-200"
               : "bg-red-50 text-red-700 border-red-200"
           }
         >
-          {service.status}
+          {formState.enabled ? "Active" : "Inactive"}
         </Badge>
       </div>
 
@@ -137,25 +292,33 @@ export default function ServiceConfigurePage({ params }: { params: Promise<{ id:
               <Label htmlFor="service-name">Service Name</Label>
               <Input
                 id="service-name"
-                defaultValue={service.serviceName}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="service-description">Description</Label>
-              <Input
-                id="service-description"
-                defaultValue={service.description}
+                value={service.jobName}
+                readOnly
+                className="bg-gray-50"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="cron-expression">Cron Expression (Quartz Format)</Label>
               <Input
                 id="cron-expression"
-                defaultValue={service.runningPeriod}
+                value={formState.cron}
+                onChange={(e) => setFormState((prev) => ({ ...prev, cron: e.target.value }))}
                 placeholder="0 0/5 * * * ?"
               />
               <p className="text-xs text-gray-500">
                 Format: Seconds Minutes Hours Day-of-Month Month Day-of-Week [Year]
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="night-cron-expression">Night Cron Expression (Optional)</Label>
+              <Input
+                id="night-cron-expression"
+                value={formState.nightCron}
+                onChange={(e) => setFormState((prev) => ({ ...prev, nightCron: e.target.value }))}
+                placeholder="0 0 2 * * ?"
+              />
+              <p className="text-xs text-gray-500">
+                Optional cron expression for night-time scheduling
               </p>
             </div>
             <div className="flex items-center justify-between">
@@ -165,21 +328,29 @@ export default function ServiceConfigurePage({ params }: { params: Promise<{ id:
                   Enable or disable this service
                 </p>
               </div>
-              <Switch id="service-active" defaultChecked={service.status === "Active"} />
+              <Switch
+                id="service-active"
+                checked={formState.enabled}
+                onCheckedChange={(checked) => setFormState((prev) => ({ ...prev, enabled: checked }))}
+              />
             </div>
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1">
+              <Button variant="outline" className="flex-1" disabled>
                 <Play className="h-4 w-4 mr-1" />
                 Run Now
               </Button>
-              <Button variant="outline" className="flex-1">
+              <Button variant="outline" className="flex-1" disabled>
                 <Pause className="h-4 w-4 mr-1" />
                 Pause
               </Button>
             </div>
-            <Button className="w-full">
-              <Save className="h-4 w-4 mr-1" />
-              Save Configuration
+            <Button className="w-full" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              {isSaving ? "Saving..." : "Save Configuration"}
             </Button>
           </CardContent>
         </Card>
