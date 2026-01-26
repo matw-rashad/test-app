@@ -1,57 +1,166 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Eye, EyeOff, Trash2, Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Eye, EyeOff, Save, Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
+import { ApiKeyItem, PaginatedApiKeysResponse } from "@/types/api-keys";
+
+const PAGE_SIZE_OPTIONS = [2, 5, 10];
 
 export default function APIKeysConfiguration() {
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
+  const [apiKeysResponse, setApiKeysResponse] = useState<PaginatedApiKeysResponse | null>(null);
+  const [editedValues, setEditedValues] = useState<{ [key: string]: string }>({});
+  const [originalValues, setOriginalValues] = useState<{ [key: string]: string }>({});
+  const [loading, setLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  // Pagination and search state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1); // Reset to first page on search
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchApiKeys = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      });
+
+      if (debouncedSearch) {
+        params.append("search", debouncedSearch);
+      }
+
+      const response = await fetch(`/api/credentials/apikeys?${params}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch API keys");
+      }
+
+      const data: PaginatedApiKeysResponse = await response.json();
+      setApiKeysResponse(data);
+
+      // Initialize edited and original values
+      const values: { [key: string]: string } = {};
+      data.items.forEach((item) => {
+        values[item.propertyName] = item.value || "";
+      });
+      setEditedValues((prev) => ({ ...prev, ...values }));
+      setOriginalValues((prev) => ({ ...prev, ...values }));
+    } catch (error) {
+      console.error("Error fetching API keys:", error);
+      toast.error("Failed to load API keys");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, debouncedSearch]);
+
+  useEffect(() => {
+    fetchApiKeys();
+  }, [fetchApiKeys]);
 
   const toggleKeyVisibility = (id: string) => {
-    setShowKeys(prev => ({ ...prev, [id]: !prev[id] }));
+    setShowKeys((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const apiKeys = [
-    {
-      id: "1",
-      name: "Production API Key",
-      key: "prod_api_key_1234567890abcdefghijklmnopqrstuvwxyz_EXAMPLE_DO_NOT_USE",
-      created: "2024-01-15",
-      lastUsed: "2 hours ago",
-      status: "active",
-      permissions: ["read", "write"]
-    },
-    {
-      id: "2",
-      name: "Development API Key",
-      key: "dev_api_key_abcdefghijklmnopqrstuvwxyz1234567890_EXAMPLE_DO_NOT_USE",
-      created: "2024-02-01",
-      lastUsed: "1 day ago",
-      status: "active",
-      permissions: ["read"]
-    },
-    {
-      id: "3",
-      name: "Mobile App API Key",
-      key: "mobile_api_key_xyz9876543210fedcba_EXAMPLE_KEY_FOR_DEMO_ONLY",
-      created: "2024-01-20",
-      lastUsed: "Never",
-      status: "inactive",
-      permissions: ["read", "write"]
-    },
-  ];
+  const handleValueChange = (propertyName: string, value: string) => {
+    setEditedValues((prev) => ({ ...prev, [propertyName]: value }));
+  };
+
+  const handleSave = async (item: ApiKeyItem) => {
+    const newValue = editedValues[item.propertyName];
+
+    if (!newValue || newValue.trim() === "") {
+      toast.error("Value cannot be empty");
+      return;
+    }
+
+    try {
+      setSavingKey(item.propertyName);
+
+      const backendKeyName = mapToBackendKeyName(item.propertyName);
+
+      const response = await fetch(`/api/credentials/apikeys/${backendKeyName}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newValue),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update API key");
+      }
+
+      toast.success(`${item.name} updated successfully`);
+
+      // Update original value to reflect saved state
+      setOriginalValues((prev) => ({
+        ...prev,
+        [item.propertyName]: newValue,
+      }));
+    } catch (error) {
+      console.error("Error updating API key:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update API key");
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const mapToBackendKeyName = (propertyName: string): string => {
+    const mapping: { [key: string]: string } = {
+      itScopeAPIKey: "ITScopeAPIKey",
+      seqApiKey: "SeqApiKey",
+      dhlClientKey: "DHLClientKey",
+      dhlClientSecret: "DHLClientSecret",
+    };
+    return mapping[propertyName] || propertyName;
+  };
 
   const maskKey = (key: string) => {
-    if (key.length <= 20) return key;
-    return `${key.substring(0, 12)}${"•".repeat(40)}${key.substring(key.length - 4)}`;
+    if (!key || key.length <= 20) return key || "";
+    return `${key.substring(0, 12)}${"•".repeat(20)}${key.substring(key.length - 4)}`;
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const hasChanges = (propertyName: string): boolean => {
+    const originalValue = originalValues[propertyName] || "";
+    const currentValue = editedValues[propertyName] || "";
+    return originalValue !== currentValue;
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= (apiKeysResponse?.totalPages || 1)) {
+      setPage(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newPageSize: string) => {
+    setPageSize(parseInt(newPageSize, 10));
+    setPage(1);
   };
 
   return (
@@ -61,33 +170,28 @@ export default function APIKeysConfiguration() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">API Keys</h1>
           <p className="text-sm md:text-base text-gray-500 mt-1">
-            Manage API keys for accessing your application
+            Manage API keys for external service integrations
           </p>
         </div>
-        <Button className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          Generate New Key
-        </Button>
       </div>
 
       {/* API Keys Overview */}
-      <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-3">
+      <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2">
         <Card>
           <CardHeader className="p-4 md:p-6 pb-3">
             <CardDescription className="text-xs md:text-sm">Total Keys</CardDescription>
-            <CardTitle className="text-2xl md:text-3xl">3</CardTitle>
+            <CardTitle className="text-2xl md:text-3xl">
+              {apiKeysResponse?.totalCount || 0}
+            </CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="p-4 md:p-6 pb-3">
-            <CardDescription className="text-xs md:text-sm">Active Keys</CardDescription>
-            <CardTitle className="text-2xl md:text-3xl text-green-600">2</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="p-4 md:p-6 pb-3">
-            <CardDescription className="text-xs md:text-sm">API Requests (24h)</CardDescription>
-            <CardTitle className="text-2xl md:text-3xl">1,234</CardTitle>
+            <CardDescription className="text-xs md:text-sm">Configured Keys</CardDescription>
+            <CardTitle className="text-2xl md:text-3xl text-green-600">
+              {apiKeysResponse?.items.filter((item) => item.value && item.value !== "string")
+                .length || 0}
+            </CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -95,99 +199,148 @@ export default function APIKeysConfiguration() {
       {/* API Keys List */}
       <Card>
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg">Your API Keys</CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            View and manage your API keys. Keep your keys secure and never share them publicly.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="text-base md:text-lg">Your API Keys</CardTitle>
+              <CardDescription className="text-xs md:text-sm">
+                View and manage your API keys. Keep your keys secure and never share them publicly.
+              </CardDescription>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="mt-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by key name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
         </CardHeader>
+
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-          <div className="space-y-4">
-            {apiKeys.map((apiKey) => (
-              <Card key={apiKey.id} className="border">
-                <CardContent className="p-4 space-y-3">
-                  {/* Key Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-sm font-semibold text-gray-900">{apiKey.name}</h3>
-                        <Badge
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+            </div>
+          ) : apiKeysResponse?.items.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-gray-500">
+              {debouncedSearch ? "No API keys match your search" : "No API keys found"}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {apiKeysResponse?.items.map((item) => (
+                <Card key={item.id} className="border">
+                  <CardContent className="p-4 space-y-3">
+                    {/* Key Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-900">{item.name}</h3>
+                        <p className="text-xs text-gray-500">{item.description}</p>
+                      </div>
+                    </div>
+
+                    {/* API Key Input */}
+                    <div className="space-y-2">
+                      <Label className="text-xs">API Key</Label>
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <Input
+                            type={showKeys[item.id] ? "text" : "password"}
+                            value={
+                              showKeys[item.id]
+                                ? editedValues[item.propertyName] || ""
+                                : maskKey(editedValues[item.propertyName] || "")
+                            }
+                            onChange={(e) => handleValueChange(item.propertyName, e.target.value)}
+                            className="font-mono text-xs"
+                            placeholder="Enter API key..."
+                          />
+                        </div>
+                        <Button
                           variant="outline"
-                          className={
-                            apiKey.status === "active"
-                              ? "bg-green-50 text-green-700 border-green-200 text-xs"
-                              : "bg-gray-100 text-gray-700 border-gray-200 text-xs"
+                          size="icon"
+                          onClick={() => toggleKeyVisibility(item.id)}
+                        >
+                          {showKeys[item.id] ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant={hasChanges(item.propertyName) ? "default" : "outline"}
+                          size="icon"
+                          onClick={() => handleSave(item)}
+                          disabled={
+                            savingKey === item.propertyName || !hasChanges(item.propertyName)
                           }
                         >
-                          {apiKey.status}
-                        </Badge>
+                          {savingKey === item.propertyName ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
-                      <p className="text-xs text-gray-500">
-                        Created: {apiKey.created} • Last used: {apiKey.lastUsed}
-                      </p>
                     </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Pagination */}
+              {apiKeysResponse && apiKeysResponse.totalCount > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span>Rows per page:</span>
+                    <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                      <SelectTrigger className="w-16 h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map((size) => (
+                          <SelectItem key={size} value={size.toString()}>
+                            {size}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  {/* API Key Display */}
-                  <div className="space-y-2">
-                    <Label className="text-xs">API Key</Label>
-                    <div className="flex gap-2">
-                      <div className="flex-1 relative">
-                        <Input
-                          value={showKeys[apiKey.id] ? apiKey.key : maskKey(apiKey.key)}
-                          readOnly
-                          className="font-mono text-xs pr-10"
-                        />
-                      </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-gray-500">
+                      Page {apiKeysResponse.page} of {apiKeysResponse.totalPages} (
+                      {apiKeysResponse.totalCount} items)
+                    </span>
+                    <div className="flex items-center gap-1">
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => toggleKeyVisibility(apiKey.id)}
+                        className="h-8 w-8"
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page <= 1}
                       >
-                        {showKeys[apiKey.id] ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                        <ChevronLeft className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => copyToClipboard(apiKey.key)}
+                        className="h-8 w-8"
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={page >= apiKeysResponse.totalPages}
                       >
-                        <Copy className="h-4 w-4" />
+                        <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-
-                  {/* Permissions */}
-                  <div>
-                    <Label className="text-xs mb-1.5 block">Permissions</Label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {apiKey.permissions.map((permission) => (
-                        <Badge key={permission} variant="secondary" className="text-xs">
-                          {permission}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t">
-                    <Button variant="outline" size="sm" className="flex-1">
-                      Edit Permissions
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
-                      Regenerate
-                    </Button>
-                    <Button variant="destructive" size="sm" className="flex-1">
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Revoke
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -222,33 +375,6 @@ export default function APIKeysConfiguration() {
               <span>Never share API keys publicly or with unauthorized users</span>
             </li>
           </ul>
-        </CardContent>
-      </Card>
-
-      {/* Rate Limits */}
-      <Card>
-        <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg">Rate Limits</CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            Current API rate limit settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label className="text-xs text-gray-500">Requests per minute</Label>
-              <p className="text-2xl font-bold">100</p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-gray-500">Requests per day</Label>
-              <p className="text-2xl font-bold">10,000</p>
-            </div>
-          </div>
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-xs text-blue-800">
-              Need higher limits? Contact support to upgrade your plan.
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
