@@ -50,10 +50,10 @@ const navItems: NavItem[] = [
   {
     name: "Configuration",
     children: [
-      { name: "General", href: "/admin/configuration/general" },
-      { name: "Security", href: "/admin/configuration/security" },
+      // { name: "General", href: "/admin/configuration/general" },
+      // { name: "Security", href: "/admin/configuration/security" },
       { name: "Integrations", href: "/admin/configuration/integrations" },
-      { name: "API Keys", href: "/admin/configuration/api-keys" },
+      // { name: "API Keys", href: "/admin/configuration/api-keys" },
       { name: "Services", href: "/admin/configuration/services" },
     ]
   },
@@ -61,11 +61,11 @@ const navItems: NavItem[] = [
     name: "Middleware Services",
     children: [
       { name: "DHL Mail Configuration", href: "/admin/middleware-services/dhl-mail" },
-      { name: "Message Service Configuration", href: "/admin/middleware-services/message-service" },
+      //{ name: "Message Service Configuration", href: "/admin/middleware-services/message-service" },
     ]
   },
-  { name: "Settings", href: "/admin/settings" },
-  { name: "Analytics", href: "/admin/analytics" },
+  // { name: "Settings", href: "/admin/settings" },
+  // { name: "Analytics", href: "/admin/analytics" },
 ];
 
 // Navigation item component

@@ -18,6 +18,51 @@ export interface UniteCredentials {
   contactPersonCode: string;
 }
 
+export interface AmazonCredentials {
+  // Zubehor account
+  amazonClientId_Zubehor: string;
+  amazonClientSecret_Zubehor: string;
+  amazonRefreshToken_Zubehor: string;
+  // UAG account
+  amazonClientId_UAG: string;
+  amazonClientSecret_UAG: string;
+  amazonRefreshToken_UAG: string;
+  // Vendor account
+  amazonClientId_Vendor: string;
+  amazonClientSecret_Vendor: string;
+  amazonRefreshToken_Vendor: string;
+  // Amazon Ads
+  amazonAdsClientId: string;
+  amazonAdsClientSecret: string;
+  amazonAdsRefreshToken: string;
+  amazonAdsTokenUrl: string;
+  amazonAdsApiUrl: string;
+  // Common
+  amazonEndpoint: string;
+  amazonReturnsCsvLocation: string;
+  amazonAdsReportStartDays: number;
+}
+
+export interface SellerLogicCredentials {
+  sl_ClientId: string;
+  sl_SecretKey: string;
+}
+
+export interface DhlCredentials {
+  clientKey: string;
+  clientSecret: string;
+}
+
+export interface ITScopeCredentials {
+  accountId: string;
+  apiKey: string;
+}
+
+export interface ConradSettings {
+  importLocation: string;
+  exportLocation: string;
+}
+
 export interface IntegrationService {
   id: string;
   name: string;

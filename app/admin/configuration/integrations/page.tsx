@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Server, ChevronRight } from "lucide-react";
+import { Mail, Server, ChevronRight, BarChart3, Truck, Database, FolderInput } from "lucide-react";
+import { AmazonIcon } from "@/components/icons/amazon-icon";
 
 interface IntegrationService {
   id: string;
@@ -27,6 +28,41 @@ const integrationServices: IntegrationService[] = [
     description: "FTP and EDI configuration for Unite integration",
     icon: <Server className="h-6 w-6" />,
     href: "/admin/configuration/integrations/unite",
+  },
+  {
+    id: "amazon",
+    name: "Amazon SP-API",
+    description: "Amazon Seller Partner API credentials for all accounts",
+    icon: <AmazonIcon className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/amazon",
+  },
+  {
+    id: "sellerlogic",
+    name: "SellerLogic",
+    description: "SellerLogic API credentials for repricing and analytics",
+    icon: <BarChart3 className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/sellerlogic",
+  },
+  {
+    id: "dhl",
+    name: "DHL",
+    description: "DHL API credentials for tracking and shipping",
+    icon: <Truck className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/dhl",
+  },
+  {
+    id: "itscope",
+    name: "ITScope",
+    description: "ITScope API credentials for order processing",
+    icon: <Database className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/itscope",
+  },
+  {
+    id: "conrad",
+    name: "Conrad",
+    description: "Conrad file import and export locations",
+    icon: <FolderInput className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/conrad",
   },
 ];
 
