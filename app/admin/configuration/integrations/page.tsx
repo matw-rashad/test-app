@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Server, ChevronRight, BarChart3, Truck, Database, FolderInput } from "lucide-react";
+import { Mail, Server, ChevronRight, BarChart3, Truck, Database, FolderInput, Globe, FolderArchive } from "lucide-react";
 import { AmazonIcon } from "@/components/icons/amazon-icon";
 
 interface IntegrationService {
@@ -63,6 +63,34 @@ const integrationServices: IntegrationService[] = [
     description: "Conrad file import and export locations",
     icon: <FolderInput className="h-6 w-6" />,
     href: "/admin/configuration/integrations/conrad",
+  },
+  {
+    id: "digitec",
+    name: "Digitec",
+    description: "Digitec product update file locations",
+    icon: <FolderInput className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/digitec",
+  },
+  {
+    id: "sap",
+    name: "SAP Business One",
+    description: "SAP Service Layer API connection settings",
+    icon: <Globe className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/sap",
+  },
+  {
+    id: "sql",
+    name: "SQL Server",
+    description: "SQL Server database connection settings",
+    icon: <Database className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/sql",
+  },
+  {
+    id: "middleware",
+    name: "Middleware",
+    description: "Middleware archive location settings",
+    icon: <FolderArchive className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/middleware",
   },
 ];
 

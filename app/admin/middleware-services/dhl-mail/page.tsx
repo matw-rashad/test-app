@@ -757,6 +757,178 @@ export default function DHLMailConfiguration() {
 
       {/* Configuration Cards */}
       <div className="grid gap-4 md:gap-6">
+         {/* DHL Mail Templates Table */}
+        <Card>
+          <CardHeader className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base md:text-lg">DHL Mail Templates</CardTitle>
+                <CardDescription className="text-xs md:text-sm">
+                  Manage DHL mail template configurations
+                </CardDescription>
+              </div>
+              <Button onClick={() => router.push("/admin/middleware-services/dhl-mail/templates/new")} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Create New
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+            {templateError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{templateError}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Search Input */}
+            {!isLoadingTemplates && templates.length > 0 && (
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by tracking code, template key, or description..."
+                  value={templateSearchQuery}
+                  onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            )}
+
+            {isLoadingTemplates ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="h-4 w-[50px]" />
+                    <Skeleton className="h-4 w-[150px]" />
+                    <Skeleton className="h-4 flex-1" />
+                    <Skeleton className="h-4 w-[60px]" />
+                    <Skeleton className="h-8 w-[60px]" />
+                  </div>
+                ))}
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No DHL mail templates configured yet.</p>
+                <p className="text-sm">Click &quot;Create New&quot; to add your first template.</p>
+              </div>
+            ) : filteredTemplates.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No templates found matching &quot;{templateSearchQuery}&quot;</p>
+                <p className="text-sm">Try a different search term.</p>
+              </div>
+            ) : (
+              <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Id</TableHead>
+                    <TableHead>Tracking Status Code</TableHead>
+                    <TableHead>Template Key</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedTemplates.map((template) => (
+                    <TableRow key={template.id}>
+                      <TableCell className="font-medium">{template.id}</TableCell>
+                      <TableCell className="font-medium">{template.trackingStatusCode}</TableCell>
+                      <TableCell>{template.templateKey}</TableCell>
+                      <TableCell className="text-gray-600 max-w-[300px] truncate">
+                        {template.description || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={template.isActive ? "default" : "secondary"}>
+                          {template.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/admin/middleware-services/dhl-mail/templates/${template.id}/edit`)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenDeleteDialog("template", template)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination Controls */}
+              {totalTemplatePages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <p className="text-sm text-gray-500">
+                    Showing {((templateCurrentPage - 1) * templatePageSize) + 1} to{" "}
+                    {Math.min(templateCurrentPage * templatePageSize, filteredTemplates.length)} of{" "}
+                    {filteredTemplates.length} results
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTemplateCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={templateCurrentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalTemplatePages }, (_, i) => i + 1)
+                        .filter((page) => {
+                          // Show first, last, current, and pages around current
+                          return (
+                            page === 1 ||
+                            page === totalTemplatePages ||
+                            Math.abs(page - templateCurrentPage) <= 1
+                          );
+                        })
+                        .map((page, index, arr) => {
+                          // Add ellipsis if there's a gap
+                          const showEllipsisBefore = index > 0 && arr[index - 1] !== page - 1;
+                          return (
+                            <span key={page} className="flex items-center">
+                              {showEllipsisBefore && (
+                                <span className="px-2 text-gray-400">...</span>
+                              )}
+                              <Button
+                                variant={templateCurrentPage === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setTemplateCurrentPage(page)}
+                                className="min-w-[36px]"
+                              >
+                                {page}
+                              </Button>
+                            </span>
+                          );
+                        })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTemplateCurrentPage((prev) => Math.min(prev + 1, totalTemplatePages))}
+                      disabled={templateCurrentPage === totalTemplatePages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+              </>
+            )}
+          </CardContent>
+        </Card>
         {/* DHL Statuses Table */}
         <Card>
           <CardHeader className="p-4 md:p-6">
@@ -933,178 +1105,7 @@ export default function DHLMailConfiguration() {
           </CardContent>
         </Card>
 
-        {/* DHL Mail Templates Table */}
-        <Card>
-          <CardHeader className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base md:text-lg">DHL Mail Templates</CardTitle>
-                <CardDescription className="text-xs md:text-sm">
-                  Manage DHL mail template configurations
-                </CardDescription>
-              </div>
-              <Button onClick={() => router.push("/admin/middleware-services/dhl-mail/templates/new")} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Create New
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-            {templateError && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{templateError}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Search Input */}
-            {!isLoadingTemplates && templates.length > 0 && (
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by tracking code, template key, or description..."
-                  value={templateSearchQuery}
-                  onChange={(e) => setTemplateSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            )}
-
-            {isLoadingTemplates ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Skeleton className="h-4 w-[50px]" />
-                    <Skeleton className="h-4 w-[150px]" />
-                    <Skeleton className="h-4 flex-1" />
-                    <Skeleton className="h-4 w-[60px]" />
-                    <Skeleton className="h-8 w-[60px]" />
-                  </div>
-                ))}
-              </div>
-            ) : templates.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>No DHL mail templates configured yet.</p>
-                <p className="text-sm">Click &quot;Create New&quot; to add your first template.</p>
-              </div>
-            ) : filteredTemplates.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>No templates found matching &quot;{templateSearchQuery}&quot;</p>
-                <p className="text-sm">Try a different search term.</p>
-              </div>
-            ) : (
-              <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Id</TableHead>
-                    <TableHead>Tracking Status Code</TableHead>
-                    <TableHead>Template Key</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedTemplates.map((template) => (
-                    <TableRow key={template.id}>
-                      <TableCell className="font-medium">{template.id}</TableCell>
-                      <TableCell className="font-medium">{template.trackingStatusCode}</TableCell>
-                      <TableCell>{template.templateKey}</TableCell>
-                      <TableCell className="text-gray-600 max-w-[300px] truncate">
-                        {template.description || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={template.isActive ? "default" : "secondary"}>
-                          {template.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push(`/admin/middleware-services/dhl-mail/templates/${template.id}/edit`)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenDeleteDialog("template", template)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              {/* Pagination Controls */}
-              {totalTemplatePages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <p className="text-sm text-gray-500">
-                    Showing {((templateCurrentPage - 1) * templatePageSize) + 1} to{" "}
-                    {Math.min(templateCurrentPage * templatePageSize, filteredTemplates.length)} of{" "}
-                    {filteredTemplates.length} results
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setTemplateCurrentPage((prev) => Math.max(prev - 1, 1))}
-                      disabled={templateCurrentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalTemplatePages }, (_, i) => i + 1)
-                        .filter((page) => {
-                          // Show first, last, current, and pages around current
-                          return (
-                            page === 1 ||
-                            page === totalTemplatePages ||
-                            Math.abs(page - templateCurrentPage) <= 1
-                          );
-                        })
-                        .map((page, index, arr) => {
-                          // Add ellipsis if there's a gap
-                          const showEllipsisBefore = index > 0 && arr[index - 1] !== page - 1;
-                          return (
-                            <span key={page} className="flex items-center">
-                              {showEllipsisBefore && (
-                                <span className="px-2 text-gray-400">...</span>
-                              )}
-                              <Button
-                                variant={templateCurrentPage === page ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setTemplateCurrentPage(page)}
-                                className="min-w-[36px]"
-                              >
-                                {page}
-                              </Button>
-                            </span>
-                          );
-                        })}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setTemplateCurrentPage((prev) => Math.min(prev + 1, totalTemplatePages))}
-                      disabled={templateCurrentPage === totalTemplatePages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-              </>
-            )}
-          </CardContent>
-        </Card>
+       
       </div>
 
       {/* Create/Edit DHL Status Dialog */}

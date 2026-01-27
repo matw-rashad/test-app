@@ -325,10 +325,10 @@ export default function NewTemplatePage() {
               </div>
 
               {formData.templateLines.map((line, index) => (
-                <Card key={index} className="p-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Language {index + 1}</Label>
+                <Card key={index} className="overflow-hidden">
+                    <CardHeader >
+                    <CardTitle><div className="bg-gray-200 flex items-center justify-between px-4 py-3 rounded-md">
+                      <Label className="text-sm font-semibold">Language {index + 1}</Label>
                       {formData.templateLines.length > 1 && (
                         <Button
                           type="button"
@@ -336,13 +336,15 @@ export default function NewTemplatePage() {
                           size="sm"
                           onClick={() => handleRemoveTemplateLine(index)}
                           disabled={isSubmitting}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 -my-1"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
-
+                    </CardTitle>
+                  </CardHeader>
+                    <div className="p-4 space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor={`language-${index}`}>
                         Language Code <span className="text-red-500">*</span>
@@ -387,7 +389,7 @@ export default function NewTemplatePage() {
                         disabled={isSubmitting}
                       />
                     </div>
-                  </div>
+                    </div>
                 </Card>
               ))}
             </div>

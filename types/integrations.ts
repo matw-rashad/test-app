@@ -63,6 +63,25 @@ export interface ConradSettings {
   exportLocation: string;
 }
 
+export interface DigitecSettings {
+  productUpdateLocation: string;
+}
+
+export interface SapSettings {
+  serviceLayerBaseUrl: string;
+  companyDb: string;
+  userName: string;
+  userPassword: string;
+}
+
+export interface SqlSettings {
+  connectionString: string;
+}
+
+export interface MiddlewareSettings {
+  archiveLocation: string;
+}
+
 export interface IntegrationService {
   id: string;
   name: string;
