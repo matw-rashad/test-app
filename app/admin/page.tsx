@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,10 @@ export default function AdminPage() {
   const [isLoadingScheduled, setIsLoadingScheduled] = useState(true);
   const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshCountdown, setRefreshCountdown] = useState(5);
+  const nextRefreshAtRef = useRef<number | null>(null);
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchRunningJobs = useCallback(async () => {
     try {
@@ -84,18 +88,51 @@ export default function AdminPage() {
     }
   }, []);
 
-  const refreshJobs = useCallback(async () => {
+  const refreshJobs = useCallback(async (options?: { showToast?: boolean }) => {
+    const shouldShowToast = options?.showToast ?? true;
     setIsRefreshing(true);
     await Promise.all([fetchRunningJobs(), fetchScheduledJobs(), fetchUpcomingJobs()]);
     setIsRefreshing(false);
-    toast.success("Jobs refreshed");
+    if (shouldShowToast) {
+      toast.success("Jobs refreshed");
+    }
   }, [fetchRunningJobs, fetchScheduledJobs, fetchUpcomingJobs]);
 
   useEffect(() => {
-    fetchRunningJobs();
-    fetchScheduledJobs();
-    fetchUpcomingJobs();
-  }, [fetchRunningJobs, fetchScheduledJobs, fetchUpcomingJobs]);
+    let isMounted = true;
+    const refreshIntervalMs = 5000;
+
+    const scheduleRefresh = () => {
+      nextRefreshAtRef.current = Date.now() + refreshIntervalMs;
+      setRefreshCountdown(Math.ceil(refreshIntervalMs / 1000));
+      refreshTimeoutRef.current = setTimeout(async () => {
+        await refreshJobs({ showToast: false });
+        if (isMounted) {
+          scheduleRefresh();
+        }
+      }, refreshIntervalMs);
+    };
+
+    refreshJobs({ showToast: false });
+    scheduleRefresh();
+
+    countdownIntervalRef.current = setInterval(() => {
+      if (!nextRefreshAtRef.current) return;
+      const remainingMs = Math.max(0, nextRefreshAtRef.current - Date.now());
+      const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+      setRefreshCountdown(remainingSeconds);
+    }, 1000);
+
+    return () => {
+      isMounted = false;
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, [refreshJobs]);
 
   const formatDateTime = (dateString: string | null) => {
     if (!dateString) return "N/A";
@@ -219,12 +256,16 @@ export default function AdminPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={refreshJobs}
+                onClick={() => refreshJobs()}
                 disabled={isRefreshing}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Auto refresh in {refreshCountdown}s</span>
+              </div>
               <Link href="/admin/configuration/jobs">
                 <Button variant="ghost" size="sm">
                   View All
