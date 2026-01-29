@@ -106,3 +106,25 @@ export interface ScheduledJob {
   nextFireTime: string | null;
   state: "Normal" | "Paused" | "Complete" | "Error" | "Blocked" | "None";
 }
+
+export interface UpcomingJob {
+  jobName: string;
+  jobGroup: string;
+  triggerName: string;
+  description: string | null;
+  nextFireTime: string;
+  nextFireTimeUtc: string;
+  previousFireTime: string | null;
+  timeUntilFire: string;
+  timeUntilFireFormatted: string;
+  cronExpression: string | null;
+  state: string;
+  priority: number;
+}
+
+export interface UpcomingJobsResponse {
+  jobs: UpcomingJob[];
+  totalCount: number;
+  hoursAhead: number;
+  generatedAt: string;
+}

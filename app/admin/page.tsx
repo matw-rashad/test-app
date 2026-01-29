@@ -15,14 +15,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, Play, Clock, ArrowRight } from "lucide-react";
-import { RunningJob, ScheduledJob } from "@/types/integrations";
+import { RefreshCw, Play, Clock, ArrowRight, CalendarClock, Timer } from "lucide-react";
+import { RunningJob, ScheduledJob, UpcomingJobsResponse } from "@/types/integrations";
 
 export default function AdminPage() {
   const [runningJobs, setRunningJobs] = useState<RunningJob[]>([]);
   const [scheduledJobs, setScheduledJobs] = useState<ScheduledJob[]>([]);
+  const [upcomingJobsData, setUpcomingJobsData] = useState<UpcomingJobsResponse | null>(null);
   const [isLoadingRunning, setIsLoadingRunning] = useState(true);
   const [isLoadingScheduled, setIsLoadingScheduled] = useState(true);
+  const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchRunningJobs = useCallback(async () => {
@@ -63,17 +65,37 @@ export default function AdminPage() {
     }
   }, []);
 
+  const fetchUpcomingJobs = useCallback(async () => {
+    try {
+      const response = await fetch("/api/configuration/upcoming-jobs?hoursAhead=24&limit=5");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch upcoming jobs");
+      }
+
+      setUpcomingJobsData(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch upcoming jobs";
+      console.error(errorMessage);
+      setUpcomingJobsData(null);
+    } finally {
+      setIsLoadingUpcoming(false);
+    }
+  }, []);
+
   const refreshJobs = useCallback(async () => {
     setIsRefreshing(true);
-    await Promise.all([fetchRunningJobs(), fetchScheduledJobs()]);
+    await Promise.all([fetchRunningJobs(), fetchScheduledJobs(), fetchUpcomingJobs()]);
     setIsRefreshing(false);
     toast.success("Jobs refreshed");
-  }, [fetchRunningJobs, fetchScheduledJobs]);
+  }, [fetchRunningJobs, fetchScheduledJobs, fetchUpcomingJobs]);
 
   useEffect(() => {
     fetchRunningJobs();
     fetchScheduledJobs();
-  }, [fetchRunningJobs, fetchScheduledJobs]);
+    fetchUpcomingJobs();
+  }, [fetchRunningJobs, fetchScheduledJobs, fetchUpcomingJobs]);
 
   const formatDateTime = (dateString: string | null) => {
     if (!dateString) return "N/A";
@@ -98,28 +120,30 @@ export default function AdminPage() {
     return runTime;
   };
 
-  const getStateBadge = (state: ScheduledJob["state"]) => {
-    const variants: Record<ScheduledJob["state"], { variant: "default" | "secondary" | "destructive" | "outline"; className: string }> = {
-      Normal: { variant: "default", className: "bg-green-100 text-green-700 border-green-200" },
-      Paused: { variant: "secondary", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-      Complete: { variant: "default", className: "bg-blue-100 text-blue-700 border-blue-200" },
-      Error: { variant: "destructive", className: "" },
-      Blocked: { variant: "secondary", className: "bg-orange-100 text-orange-700 border-orange-200" },
-      None: { variant: "outline", className: "" },
-    };
-    const config = variants[state] || variants.None;
+  const getTimeUntilBadge = (timeFormatted: string) => {
+    const isUrgent = timeFormatted.includes("s") && !timeFormatted.includes("m") && !timeFormatted.includes("h") && !timeFormatted.includes("d");
+    const isSoon = timeFormatted.includes("m") && !timeFormatted.includes("h") && !timeFormatted.includes("d");
+
+    if (isUrgent) {
+      return (
+        <Badge variant="destructive" className="font-mono">
+          {timeFormatted}
+        </Badge>
+      );
+    }
+    if (isSoon) {
+      return (
+        <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-200 font-mono">
+          {timeFormatted}
+        </Badge>
+      );
+    }
     return (
-      <Badge variant={config.variant} className={config.className}>
-        {state}
+      <Badge variant="outline" className="font-mono">
+        {timeFormatted}
       </Badge>
     );
   };
-
-  // Get next upcoming jobs (sorted by next fire time)
-  const upcomingJobs = [...scheduledJobs]
-    .filter((j) => j.nextFireTime && j.state === "Normal")
-    .sort((a, b) => new Date(a.nextFireTime!).getTime() - new Date(b.nextFireTime!).getTime())
-    .slice(0, 5);
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -149,11 +173,11 @@ export default function AdminPage() {
         <Card>
           <CardHeader className="p-4 md:p-6 pb-3">
             <CardDescription className="flex items-center gap-2 text-xs md:text-sm">
-              <Clock className="h-4 w-4" />
-              Scheduled Jobs
+              <CalendarClock className="h-4 w-4" />
+              Upcoming (24h)
             </CardDescription>
-            <CardTitle className="text-2xl md:text-3xl">
-              {isLoadingScheduled ? <Skeleton className="h-9 w-12" /> : scheduledJobs.length}
+            <CardTitle className="text-2xl md:text-3xl text-blue-600">
+              {isLoadingUpcoming ? <Skeleton className="h-9 w-12" /> : upcomingJobsData?.totalCount ?? 0}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -256,7 +280,7 @@ export default function AdminPage() {
         <CardHeader className="p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-600" />
+              <CalendarClock className="h-5 w-5 text-blue-600" />
               <CardTitle className="text-base md:text-lg">Upcoming Jobs</CardTitle>
             </div>
             <Link href="/admin/configuration/jobs">
@@ -267,20 +291,20 @@ export default function AdminPage() {
             </Link>
           </div>
           <CardDescription className="text-xs md:text-sm">
-            Next scheduled job executions
+            Next scheduled job executions (within 24 hours)
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-          {isLoadingScheduled ? (
+          {isLoadingUpcoming ? (
             <div className="space-y-2">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
-          ) : upcomingJobs.length === 0 ? (
+          ) : !upcomingJobsData || upcomingJobsData.jobs.length === 0 ? (
             <div className="text-center py-6 text-gray-500">
-              <Clock className="h-10 w-10 mx-auto mb-2 opacity-20" />
-              <p className="text-sm">No upcoming jobs</p>
+              <CalendarClock className="h-10 w-10 mx-auto mb-2 opacity-20" />
+              <p className="text-sm">No upcoming jobs in the next 24 hours</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -290,16 +314,21 @@ export default function AdminPage() {
                     <TableHead>Job Name</TableHead>
                     <TableHead>Group</TableHead>
                     <TableHead>Next Fire Time</TableHead>
-                    <TableHead>State</TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-1">
+                        <Timer className="h-4 w-4" />
+                        Time Until
+                      </div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {upcomingJobs.map((job, index) => (
+                  {upcomingJobsData.jobs.map((job, index) => (
                     <TableRow key={`${job.jobName}-${index}`}>
                       <TableCell className="font-medium">{job.jobName}</TableCell>
                       <TableCell>{job.jobGroup}</TableCell>
                       <TableCell>{formatDateTime(job.nextFireTime)}</TableCell>
-                      <TableCell>{getStateBadge(job.state)}</TableCell>
+                      <TableCell>{getTimeUntilBadge(job.timeUntilFireFormatted)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
