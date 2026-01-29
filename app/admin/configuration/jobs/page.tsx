@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, Play, Clock, ArrowRight } from "lucide-react";
+import { RefreshCw, Play, Clock, AlertCircle } from "lucide-react";
 import { RunningJob, ScheduledJob } from "@/types/integrations";
 
-export default function AdminPage() {
+export default function JobsPage() {
   const [runningJobs, setRunningJobs] = useState<RunningJob[]>([]);
   const [scheduledJobs, setScheduledJobs] = useState<ScheduledJob[]>([]);
   const [isLoadingRunning, setIsLoadingRunning] = useState(true);
@@ -37,7 +36,7 @@ export default function AdminPage() {
       setRunningJobs(Array.isArray(data) ? data : []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to fetch running jobs";
-      console.error(errorMessage);
+      toast.error(errorMessage);
       setRunningJobs([]);
     } finally {
       setIsLoadingRunning(false);
@@ -56,14 +55,14 @@ export default function AdminPage() {
       setScheduledJobs(Array.isArray(data) ? data : []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to fetch scheduled jobs";
-      console.error(errorMessage);
+      toast.error(errorMessage);
       setScheduledJobs([]);
     } finally {
       setIsLoadingScheduled(false);
     }
   }, []);
 
-  const refreshJobs = useCallback(async () => {
+  const refreshAll = useCallback(async () => {
     setIsRefreshing(true);
     await Promise.all([fetchRunningJobs(), fetchScheduledJobs()]);
     setIsRefreshing(false);
@@ -86,6 +85,7 @@ export default function AdminPage() {
 
   const formatRunTime = (runTime: string) => {
     if (!runTime) return "N/A";
+    // RunTime comes as TimeSpan string like "00:00:05.1234567"
     const parts = runTime.split(":");
     if (parts.length === 3) {
       const hours = parseInt(parts[0]);
@@ -115,22 +115,24 @@ export default function AdminPage() {
     );
   };
 
-  // Get next upcoming jobs (sorted by next fire time)
-  const upcomingJobs = [...scheduledJobs]
-    .filter((j) => j.nextFireTime && j.state === "Normal")
-    .sort((a, b) => new Date(a.nextFireTime!).getTime() - new Date(b.nextFireTime!).getTime())
-    .slice(0, 5);
-
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Job Monitor</h1>
           <p className="text-sm md:text-base text-gray-500 mt-1">
-            Welcome to the admin panel
+            Monitor running and scheduled background jobs
           </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={refreshAll}
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Overview Cards */}
@@ -159,7 +161,10 @@ export default function AdminPage() {
         </Card>
         <Card>
           <CardHeader className="p-4 md:p-6 pb-3">
-            <CardDescription className="text-xs md:text-sm">Paused Jobs</CardDescription>
+            <CardDescription className="flex items-center gap-2 text-xs md:text-sm">
+              <AlertCircle className="h-4 w-4" />
+              Paused Jobs
+            </CardDescription>
             <CardTitle className="text-2xl md:text-3xl text-yellow-600">
               {isLoadingScheduled ? (
                 <Skeleton className="h-9 w-12" />
@@ -171,7 +176,10 @@ export default function AdminPage() {
         </Card>
         <Card>
           <CardHeader className="p-4 md:p-6 pb-3">
-            <CardDescription className="text-xs md:text-sm">Error Jobs</CardDescription>
+            <CardDescription className="flex items-center gap-2 text-xs md:text-sm">
+              <AlertCircle className="h-4 w-4" />
+              Error Jobs
+            </CardDescription>
             <CardTitle className="text-2xl md:text-3xl text-red-600">
               {isLoadingScheduled ? (
                 <Skeleton className="h-9 w-12" />
@@ -183,31 +191,12 @@ export default function AdminPage() {
         </Card>
       </div>
 
-      {/* Running Jobs Card */}
+      {/* Running Jobs */}
       <Card>
         <CardHeader className="p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Play className="h-5 w-5 text-green-600" />
-              <CardTitle className="text-base md:text-lg">Currently Running Jobs</CardTitle>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={refreshJobs}
-                disabled={isRefreshing}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
-              <Link href="/admin/configuration/jobs">
-                <Button variant="ghost" size="sm">
-                  View All
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
+          <div className="flex items-center gap-2">
+            <Play className="h-5 w-5 text-green-600" />
+            <CardTitle className="text-base md:text-lg">Currently Running Jobs</CardTitle>
           </div>
           <CardDescription className="text-xs md:text-sm">
             Jobs that are currently being executed
@@ -220,9 +209,9 @@ export default function AdminPage() {
               <Skeleton className="h-10 w-full" />
             </div>
           ) : runningJobs.length === 0 ? (
-            <div className="text-center py-6 text-gray-500">
-              <Play className="h-10 w-10 mx-auto mb-2 opacity-20" />
-              <p className="text-sm">No jobs are currently running</p>
+            <div className="text-center py-8 text-gray-500">
+              <Play className="h-12 w-12 mx-auto mb-2 opacity-20" />
+              <p>No jobs are currently running</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -231,6 +220,7 @@ export default function AdminPage() {
                   <TableRow>
                     <TableHead>Job Name</TableHead>
                     <TableHead>Group</TableHead>
+                    <TableHead>Trigger</TableHead>
                     <TableHead>Started At</TableHead>
                     <TableHead>Run Time</TableHead>
                   </TableRow>
@@ -240,6 +230,7 @@ export default function AdminPage() {
                     <TableRow key={`${job.jobName}-${index}`}>
                       <TableCell className="font-medium">{job.jobName}</TableCell>
                       <TableCell>{job.jobGroup}</TableCell>
+                      <TableCell>{job.triggerName}</TableCell>
                       <TableCell>{formatDateTime(job.fireTime)}</TableCell>
                       <TableCell>{formatRunTime(job.runTime)}</TableCell>
                     </TableRow>
@@ -251,23 +242,15 @@ export default function AdminPage() {
         </CardContent>
       </Card>
 
-      {/* Upcoming Jobs Card */}
+      {/* Scheduled Jobs */}
       <Card>
         <CardHeader className="p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-600" />
-              <CardTitle className="text-base md:text-lg">Upcoming Jobs</CardTitle>
-            </div>
-            <Link href="/admin/configuration/jobs">
-              <Button variant="ghost" size="sm">
-                View All
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </Link>
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-blue-600" />
+            <CardTitle className="text-base md:text-lg">Scheduled Jobs</CardTitle>
           </div>
           <CardDescription className="text-xs md:text-sm">
-            Next scheduled job executions
+            All scheduled jobs and their next fire times
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
@@ -277,10 +260,10 @@ export default function AdminPage() {
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
-          ) : upcomingJobs.length === 0 ? (
-            <div className="text-center py-6 text-gray-500">
-              <Clock className="h-10 w-10 mx-auto mb-2 opacity-20" />
-              <p className="text-sm">No upcoming jobs</p>
+          ) : scheduledJobs.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Clock className="h-12 w-12 mx-auto mb-2 opacity-20" />
+              <p>No scheduled jobs found</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -294,7 +277,7 @@ export default function AdminPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {upcomingJobs.map((job, index) => (
+                  {scheduledJobs.map((job, index) => (
                     <TableRow key={`${job.jobName}-${index}`}>
                       <TableCell className="font-medium">{job.jobName}</TableCell>
                       <TableCell>{job.jobGroup}</TableCell>

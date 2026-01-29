@@ -90,3 +90,19 @@ export interface IntegrationService {
   href: string;
   status: "connected" | "disconnected" | "error";
 }
+
+// Quartz Job Types
+export interface RunningJob {
+  jobName: string;
+  jobGroup: string;
+  triggerName: string;
+  fireTime: string;
+  runTime: string;
+}
+
+export interface ScheduledJob {
+  jobName: string;
+  jobGroup: string;
+  nextFireTime: string | null;
+  state: "Normal" | "Paused" | "Complete" | "Error" | "Blocked" | "None";
+}

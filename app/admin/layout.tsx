@@ -55,6 +55,7 @@ const navItems: NavItem[] = [
       { name: "Integrations", href: "/admin/configuration/integrations" },
       // { name: "API Keys", href: "/admin/configuration/api-keys" },
       { name: "Services", href: "/admin/configuration/services" },
+      { name: "Job Monitor", href: "/admin/configuration/jobs" },
     ]
   },
   {
