@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 
 export default function SettingsPage() {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [settings, setSettings] = useState({
     // Profile
     name: "Admin User",
@@ -26,9 +29,13 @@ export default function SettingsPage() {
     sessionTimeout: "30",
 
     // Appearance
-    darkMode: false,
     compactMode: false,
   });
+
+  // Avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSave = (section: string) => {
     console.log(`Saving ${section} settings:`, settings);
@@ -39,8 +46,8 @@ export default function SettingsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+        <p className="text-muted-foreground mt-1">
           Manage your account settings and preferences
         </p>
       </div>
@@ -110,7 +117,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="email-notifications">Email Notifications</Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Receive notifications via email
               </p>
             </div>
@@ -128,7 +135,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="push-notifications">Push Notifications</Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Receive push notifications on your device
               </p>
             </div>
@@ -146,7 +153,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="weekly-digest">Weekly Digest</Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Receive a weekly summary of activity
               </p>
             </div>
@@ -179,7 +186,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="two-factor">Two-Factor Authentication</Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Add an extra layer of security to your account
               </p>
             </div>
@@ -205,7 +212,7 @@ export default function SettingsPage() {
               }
               className="max-w-xs"
             />
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Automatically log out after this period of inactivity
             </p>
           </div>
@@ -241,16 +248,17 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="dark-mode">Dark Mode</Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Switch to dark theme
               </p>
             </div>
             <Switch
               id="dark-mode"
-              checked={settings.darkMode}
+              checked={mounted && resolvedTheme === "dark"}
               onCheckedChange={(checked) =>
-                setSettings({ ...settings, darkMode: checked })
+                setTheme(checked ? "dark" : "light")
               }
+              disabled={!mounted}
             />
           </div>
 
@@ -259,7 +267,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="compact-mode">Compact Mode</Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Use a more compact layout to show more content
               </p>
             </div>
@@ -281,7 +289,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-red-200">
+      <Card className="border-destructive/50">
         <CardHeader>
           <CardTitle className="text-red-600">Danger Zone</CardTitle>
           <CardDescription>
@@ -291,8 +299,8 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900">Delete Account</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-medium text-foreground">Delete Account</p>
+              <p className="text-sm text-muted-foreground">
                 Permanently delete your account and all data
               </p>
             </div>

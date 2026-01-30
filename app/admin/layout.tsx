@@ -22,6 +22,7 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type NavItem = {
   name: string;
@@ -102,7 +103,7 @@ function NavigationItem({
           )}
         </Button>
         {isExpanded && (
-          <div className="ml-3 space-y-1 border-l-2 border-gray-200 pl-2">
+          <div className="ml-3 space-y-1 border-l-2 border-border pl-2">
             {item.children!.map((child) => (
               <NavigationItem
                 key={child.href || child.name}
@@ -152,8 +153,8 @@ function SidebarContent({
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
       {/* Logo */}
-      <div className="flex items-center justify-center h-16 border-b border-gray-200 flex-shrink-0">
-        <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+      <div className="flex items-center justify-center h-16 border-b border-border flex-shrink-0">
+        <h1 className="text-xl font-bold text-foreground">Admin Panel</h1>
       </div>
 
       {/* Navigation */}
@@ -170,6 +171,14 @@ function SidebarContent({
 
       <Separator className="flex-shrink-0" />
 
+      {/* Theme Toggle - Desktop */}
+      <div className="hidden md:flex items-center justify-between px-4 py-2 flex-shrink-0">
+        <span className="text-sm text-muted-foreground">Theme</span>
+        <ThemeToggle />
+      </div>
+
+      <Separator className="hidden md:block flex-shrink-0" />
+
       {/* User Profile */}
       <div className="p-4 flex-shrink-0">
         <DropdownMenu>
@@ -185,7 +194,7 @@ function SidebarContent({
                 </Avatar>
                 <div className="flex flex-col items-start text-sm">
                   <span className="font-medium">{userName}</span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     {user?.email || 'user@example.com'}
                   </span>
                 </div>
@@ -242,7 +251,7 @@ export default function AdminLayout({
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <Spinner className="size-8" />
-          <p className="mt-4 text-gray-500">
+          <p className="mt-4 text-muted-foreground">
             {isLoading ? "Loading..." : "Redirecting to login..."}
           </p>
         </div>
@@ -251,9 +260,9 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-background">
       {/* Desktop Sidebar - Hidden on mobile */}
-      <aside className="hidden md:flex md:w-64 bg-white border-r border-gray-200">
+      <aside className="hidden md:flex md:w-64 bg-card border-r border-border">
         <SidebarContent pathname={pathname} user={user} onLogout={handleLogout} />
       </aside>
 
@@ -273,7 +282,7 @@ export default function AdminLayout({
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
+        <div className="md:hidden flex items-center justify-between p-4 bg-card border-b border-border">
           <Button
             variant="ghost"
             size="icon"
@@ -281,8 +290,8 @@ export default function AdminLayout({
           >
             <Menu className="h-6 w-6" />
           </Button>
-          <h1 className="text-lg font-bold text-gray-900">Admin Panel</h1>
-          <div className="w-10" /> {/* Spacer for alignment */}
+          <h1 className="text-lg font-bold text-foreground">Admin Panel</h1>
+          <ThemeToggle />
         </div>
 
         {/* Page Content */}
