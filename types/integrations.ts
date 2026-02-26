@@ -65,6 +65,8 @@ export interface ConradSettings {
 
 export interface DigitecSettings {
   productUpdateLocation: string;
+  importLocation: string;
+  exportLocation: string;
 }
 
 export interface SapSettings {

@@ -9,11 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, ArrowLeft, FolderInput } from "lucide-react";
+import { Loader2, ArrowLeft, FolderInput, FolderDown, FolderUp } from "lucide-react";
 import { DigitecSettings } from "@/types/integrations";
 
 const initialSettings: DigitecSettings = {
   productUpdateLocation: "",
+  importLocation: "",
+  exportLocation: "",
 };
 
 export default function DigitecConfiguration() {
@@ -38,6 +40,8 @@ export default function DigitecConfiguration() {
 
       setSettings({
         productUpdateLocation: data.productUpdateLocation || "",
+        importLocation: data.importLocation || "",
+        exportLocation: data.exportLocation || "",
       });
       setIsLoading(false);
     } catch (err) {
@@ -99,6 +103,14 @@ export default function DigitecConfiguration() {
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-10 w-full" />
             </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -133,7 +145,7 @@ export default function DigitecConfiguration() {
         <CardHeader className="p-4 md:p-6">
           <CardTitle className="text-base md:text-lg">File Locations</CardTitle>
           <CardDescription className="text-xs md:text-sm">
-            Configure the product update folder path for Digitec integration
+            Configure file locations for Digitec integration
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0 space-y-4">
@@ -144,13 +156,47 @@ export default function DigitecConfiguration() {
             </Label>
             <Input
               id="productUpdateLocation"
-              placeholder="D:\Automation\Digitec\Products"
+              placeholder="D:\Automation\Digitec"
               value={settings.productUpdateLocation}
               onChange={(e) => setSettings({ ...settings, productUpdateLocation: e.target.value })}
               disabled={isSaving}
             />
             <p className="text-xs text-gray-500">
-              Path where Digitec product update files are stored. Files should be placed in the /Products/In subfolder.
+              Root path for Digitec product update files.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="importLocation" className="flex items-center gap-2">
+              <FolderDown className="h-4 w-4" />
+              Import Location
+            </Label>
+            <Input
+              id="importLocation"
+              placeholder="D:\Automation\Digitec\Orders\In"
+              value={settings.importLocation}
+              onChange={(e) => setSettings({ ...settings, importLocation: e.target.value })}
+              disabled={isSaving}
+            />
+            <p className="text-xs text-gray-500">
+              Path where incoming Digitec order XML files are read from.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="exportLocation" className="flex items-center gap-2">
+              <FolderUp className="h-4 w-4" />
+              Export Location
+            </Label>
+            <Input
+              id="exportLocation"
+              placeholder="D:\Automation\Digitec\Orders\Out"
+              value={settings.exportLocation}
+              onChange={(e) => setSettings({ ...settings, exportLocation: e.target.value })}
+              disabled={isSaving}
+            />
+            <p className="text-xs text-gray-500">
+              Path where generated Digitec XML documents (order responses, delivery notes, invoices) are saved.
             </p>
           </div>
 
