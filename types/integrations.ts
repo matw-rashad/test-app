@@ -84,6 +84,12 @@ export interface MiddlewareSettings {
   archiveLocation: string;
 }
 
+export interface ShopwareCredentials {
+  shopwareBaseUrl: string;
+  shopwareClientId: string;
+  shopwareClientSecret: string;
+}
+
 export interface IntegrationService {
   id: string;
   name: string;

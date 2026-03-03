@@ -100,7 +100,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     let isMounted = true;
-    const refreshIntervalMs = 5000;
+    const refreshIntervalMs = 15000;
 
     const scheduleRefresh = () => {
       nextRefreshAtRef.current = Date.now() + refreshIntervalMs;

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Server, ChevronRight, BarChart3, Truck, Database, FolderInput, Globe, FolderArchive } from "lucide-react";
+import { Mail, Server, ChevronRight, BarChart3, Truck, Database, FolderInput, Globe, FolderArchive, ShoppingCart } from "lucide-react";
 import { AmazonIcon } from "@/components/icons/amazon-icon";
 
 interface IntegrationService {
@@ -91,6 +91,13 @@ const integrationServices: IntegrationService[] = [
     description: "Middleware archive location settings",
     icon: <FolderArchive className="h-6 w-6" />,
     href: "/admin/configuration/integrations/middleware",
+  },
+  {
+    id: "shopware",
+    name: "Shopware",
+    description: "Shopware 6 API credentials for e-commerce integration",
+    icon: <ShoppingCart className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/shopware",
   },
 ];
 
