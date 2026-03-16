@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Server, ChevronRight, BarChart3, Truck, Database, FolderInput, Globe, FolderArchive, ShoppingCart } from "lucide-react";
+import { Mail, Server, ChevronRight, BarChart3, Truck, Database, FolderInput, Globe, FolderArchive, ShoppingCart, Store } from "lucide-react";
 import { AmazonIcon } from "@/components/icons/amazon-icon";
 
 interface IntegrationService {
@@ -98,6 +98,13 @@ const integrationServices: IntegrationService[] = [
     description: "Shopware 6 API credentials for e-commerce integration",
     icon: <ShoppingCart className="h-6 w-6" />,
     href: "/admin/configuration/integrations/shopware",
+  },
+  {
+    id: "mirakl",
+    name: "Mirakl",
+    description: "Mirakl Marketplace Platform API credentials",
+    icon: <Store className="h-6 w-6" />,
+    href: "/admin/configuration/integrations/mirakl",
   },
 ];
 

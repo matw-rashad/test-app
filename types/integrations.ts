@@ -90,6 +90,12 @@ export interface ShopwareCredentials {
   shopwareClientSecret: string;
 }
 
+export interface MiraklCredentials {
+  miraklBaseUrl: string;
+  miraklApiKey: string;
+  miraklShopId: string;
+}
+
 export interface IntegrationService {
   id: string;
   name: string;
